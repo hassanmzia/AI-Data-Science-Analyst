@@ -1,0 +1,304 @@
+version: "3.9"
+
+services:
+  # ============================================
+  # PostgreSQL Database - Port 5450
+  # ============================================
+  postgres:
+    image: postgres:16-alpine
+    container_name: ds-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-datascience_db}
+      POSTGRES_USER: ${POSTGRES_USER:-ds_admin}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-ds_secure_password_2024}
+    ports:
+      - "${POSTGRES_EXTERNAL_PORT:-5450}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./docker/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - ds-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-ds_admin} -d ${POSTGRES_DB:-datascience_db}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ============================================
+  # pgAdmin - Port 5460
+  # ============================================
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: ds-pgadmin
+    restart: unless-stopped
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL:-admin@datascience.local}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD:-admin_password}
+    ports:
+      - "${PGADMIN_PORT:-5460}:80"
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+    networks:
+      - ds-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  # ============================================
+  # Redis - Port 6350
+  # ============================================
+  redis:
+    image: redis:7-alpine
+    container_name: ds-redis
+    restart: unless-stopped
+    ports:
+      - "${REDIS_EXTERNAL_PORT:-6350}:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - ds-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ============================================
+  # ChromaDB Vector Store - Port 6340
+  # ============================================
+  chromadb:
+    image: chromadb/chroma:latest
+    container_name: ds-chromadb
+    restart: unless-stopped
+    ports:
+      - "${CHROMA_PORT_EXTERNAL:-6340}:8000"
+    volumes:
+      - chroma_data:/chroma/chroma
+    environment:
+      - IS_PERSISTENT=TRUE
+      - ANONYMIZED_TELEMETRY=FALSE
+    networks:
+      - ds-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/heartbeat"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ============================================
+  # Django Backend API - Port 8050
+  # ============================================
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: ds-backend
+    restart: unless-stopped
+    environment:
+      - DJANGO_SECRET_KEY=${DJANGO_SECRET_KEY:-change-me-to-a-random-secret-key}
+      - DJANGO_DEBUG=${DJANGO_DEBUG:-True}
+      - DJANGO_ALLOWED_HOSTS=${DJANGO_ALLOWED_HOSTS:-172.168.1.95,localhost,127.0.0.1,0.0.0.0}
+      - POSTGRES_DB=${POSTGRES_DB:-datascience_db}
+      - POSTGRES_USER=${POSTGRES_USER:-ds_admin}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-ds_secure_password_2024}
+      - POSTGRES_HOST=postgres
+      - POSTGRES_PORT=5432
+      - REDIS_URL=redis://redis:6379/0
+      - CHROMA_HOST=chromadb
+      - CHROMA_PORT=8000
+      - MCP_SERVER_URL=http://mcp-server:4050
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - OPENAI_ORG_ID=${OPENAI_ORG_ID:-}
+      - SERPAPI_API_KEY=${SERPAPI_API_KEY:-}
+      - KAGGLE_USERNAME=${KAGGLE_USERNAME:-}
+      - KAGGLE_KEY=${KAGGLE_KEY:-}
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/1
+    ports:
+      - "${BACKEND_PORT:-8050}:8050"
+    volumes:
+      - ./backend:/app
+      - media_data:/app/media
+      - model_data:/app/ml_models
+    networks:
+      - ds-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      chromadb:
+        condition: service_healthy
+    command: >
+      bash -c "python manage.py migrate --noinput &&
+               python manage.py collectstatic --noinput 2>/dev/null;
+               daphne -b 0.0.0.0 -p 8050 core.asgi:application"
+
+  # ============================================
+  # Celery Worker - Background Tasks
+  # ============================================
+  celery-worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: ds-celery-worker
+    restart: unless-stopped
+    environment:
+      - DJANGO_SECRET_KEY=${DJANGO_SECRET_KEY:-change-me-to-a-random-secret-key}
+      - DJANGO_DEBUG=${DJANGO_DEBUG:-True}
+      - POSTGRES_DB=${POSTGRES_DB:-datascience_db}
+      - POSTGRES_USER=${POSTGRES_USER:-ds_admin}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-ds_secure_password_2024}
+      - POSTGRES_HOST=postgres
+      - POSTGRES_PORT=5432
+      - REDIS_URL=redis://redis:6379/0
+      - CHROMA_HOST=chromadb
+      - CHROMA_PORT=8000
+      - MCP_SERVER_URL=http://mcp-server:4050
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - OPENAI_ORG_ID=${OPENAI_ORG_ID:-}
+      - SERPAPI_API_KEY=${SERPAPI_API_KEY:-}
+      - KAGGLE_USERNAME=${KAGGLE_USERNAME:-}
+      - KAGGLE_KEY=${KAGGLE_KEY:-}
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/1
+    volumes:
+      - ./backend:/app
+      - media_data:/app/media
+      - model_data:/app/ml_models
+    networks:
+      - ds-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command: celery -A core worker -l info -Q default,ml_tasks,analysis_tasks -c 4
+
+  # ============================================
+  # Celery Beat - Scheduled Tasks
+  # ============================================
+  celery-beat:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: ds-celery-beat
+    restart: unless-stopped
+    environment:
+      - DJANGO_SECRET_KEY=${DJANGO_SECRET_KEY:-change-me-to-a-random-secret-key}
+      - POSTGRES_DB=${POSTGRES_DB:-datascience_db}
+      - POSTGRES_USER=${POSTGRES_USER:-ds_admin}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-ds_secure_password_2024}
+      - POSTGRES_HOST=postgres
+      - POSTGRES_PORT=5432
+      - REDIS_URL=redis://redis:6379/0
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/1
+    volumes:
+      - ./backend:/app
+    networks:
+      - ds-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command: celery -A core beat -l info --scheduler django_celery_beat.schedulers:DatabaseScheduler
+
+  # ============================================
+  # Celery Flower - Task Monitoring - Port 5550
+  # ============================================
+  flower:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: ds-flower
+    restart: unless-stopped
+    environment:
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/1
+    ports:
+      - "${FLOWER_PORT:-5550}:5555"
+    networks:
+      - ds-network
+    depends_on:
+      redis:
+        condition: service_healthy
+    command: celery -A core flower --port=5555
+
+  # ============================================
+  # Node.js MCP/A2A Server - Port 4050
+  # ============================================
+  mcp-server:
+    build:
+      context: ./mcp-server
+      dockerfile: Dockerfile
+    container_name: ds-mcp-server
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+      - PORT=4050
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - SERPAPI_API_KEY=${SERPAPI_API_KEY:-}
+      - BACKEND_URL=http://backend:8050
+      - REDIS_URL=redis://redis:6379/2
+      - CHROMA_URL=http://chromadb:8000
+      - POSTGRES_HOST=postgres
+      - POSTGRES_PORT=5432
+      - POSTGRES_DB=${POSTGRES_DB:-datascience_db}
+      - POSTGRES_USER=${POSTGRES_USER:-ds_admin}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-ds_secure_password_2024}
+    ports:
+      - "${MCP_PORT:-4050}:4050"
+    volumes:
+      - ./mcp-server:/app
+      - /app/node_modules
+      - media_data:/app/media
+    networks:
+      - ds-network
+    depends_on:
+      redis:
+        condition: service_healthy
+      chromadb:
+        condition: service_healthy
+
+  # ============================================
+  # React Frontend - Port 3050
+  # ============================================
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        - REACT_APP_API_URL=http://172.168.1.95:8050
+        - REACT_APP_MCP_URL=http://172.168.1.95:4050
+        - REACT_APP_WS_URL=ws://172.168.1.95:8050/ws
+    container_name: ds-frontend
+    restart: unless-stopped
+    ports:
+      - "${FRONTEND_PORT:-3050}:3050"
+    networks:
+      - ds-network
+    depends_on:
+      - backend
+      - mcp-server
+
+volumes:
+  postgres_data:
+    driver: local
+  pgadmin_data:
+    driver: local
+  redis_data:
+    driver: local
+  chroma_data:
+    driver: local
+  media_data:
+    driver: local
+  model_data:
+    driver: local
+
+networks:
+  ds-network:
+    driver: bridge
+    name: ds-analyst-network

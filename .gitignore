@@ -1,0 +1,55 @@
+# Environment
+.env
+*.pyc
+__pycache__/
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+.venv/
+
+# Node
+node_modules/
+frontend/node_modules/
+mcp-server/node_modules/
+*.tsbuildinfo
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Docker
+docker/postgres/data/
+docker/redis/data/
+
+# Django
+*.sqlite3
+backend/media/uploads/*
+!backend/media/uploads/.gitkeep
+backend/static/collected/
+db.sqlite3
+
+# Build
+frontend/build/
+frontend/dist/
+mcp-server/dist/
+
+# Logs
+*.log
+logs/
+
+# Data files
+*.csv
+*.xlsx
+*.parquet
+!backend/fixtures/*.csv
+
+# Jupyter
+.ipynb_checkpoints/
