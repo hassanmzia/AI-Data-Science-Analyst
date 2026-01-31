@@ -271,9 +271,9 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
       args:
-        - REACT_APP_API_URL=http://172.168.1.95:8050
-        - REACT_APP_MCP_URL=http://172.168.1.95:4050
-        - REACT_APP_WS_URL=ws://172.168.1.95:8050/ws
+        - VITE_API_URL=http://172.168.1.95:8050
+        - VITE_MCP_URL=http://172.168.1.95:4050
+        - VITE_WS_URL=ws://172.168.1.95:8050/ws
     container_name: ds-frontend
     restart: unless-stopped
     ports:

@@ -82,11 +82,11 @@ export default function SettingsPage() {
               <div className="grid grid-cols-2 gap-4">
                 <div className="bg-gray-50 p-3 rounded-lg">
                   <p className="text-xs text-gray-500">Backend URL</p>
-                  <p className="text-sm font-mono">{process.env.REACT_APP_API_URL || 'http://172.168.1.95:8050'}</p>
+                  <p className="text-sm font-mono">{import.meta.env.VITE_API_URL || 'http://172.168.1.95:8050'}</p>
                 </div>
                 <div className="bg-gray-50 p-3 rounded-lg">
                   <p className="text-xs text-gray-500">MCP Server URL</p>
-                  <p className="text-sm font-mono">{process.env.REACT_APP_MCP_URL || 'http://172.168.1.95:4050'}</p>
+                  <p className="text-sm font-mono">{import.meta.env.VITE_MCP_URL || 'http://172.168.1.95:4050'}</p>
                 </div>
               </div>
             </div>
