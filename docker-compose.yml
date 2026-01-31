@@ -128,7 +128,8 @@ services:
       chromadb:
         condition: service_started
     command: >
-      bash -c "python manage.py migrate --noinput &&
+      bash -c "python manage.py makemigrations --noinput &&
+               python manage.py migrate --noinput &&
                python manage.py collectstatic --noinput 2>/dev/null;
                daphne -b 0.0.0.0 -p 8050 core.asgi:application"
 
@@ -204,7 +205,8 @@ services:
       redis:
         condition: service_healthy
     command: >
-      bash -c "python manage.py migrate --noinput &&
+      bash -c "python manage.py makemigrations --noinput &&
+               python manage.py migrate --noinput &&
                celery -A core beat -l info --scheduler django_celery_beat.schedulers:DatabaseScheduler"
 
   # ============================================
@@ -253,8 +255,6 @@ services:
     ports:
       - "${MCP_PORT:-4050}:4050"
     volumes:
-      - ./mcp-server:/app
-      - /app/node_modules
       - media_data:/app/media
     networks:
       - ds-network
