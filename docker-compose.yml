@@ -127,6 +127,12 @@ services:
         condition: service_healthy
       chromadb:
         condition: service_started
+    healthcheck:
+      test: ["CMD-SHELL", "python -c 'import urllib.request; urllib.request.urlopen(\"http://localhost:8050/api/health/\")' || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 30s
     command: >
       bash -c "python manage.py makemigrations --noinput &&
                python manage.py migrate --noinput &&
@@ -168,7 +174,7 @@ services:
     networks:
       - ds-network
     depends_on:
-      postgres:
+      backend:
         condition: service_healthy
       redis:
         condition: service_healthy
@@ -199,15 +205,10 @@ services:
       - ds-network
     depends_on:
       backend:
-        condition: service_started
-      postgres:
         condition: service_healthy
       redis:
         condition: service_healthy
-    command: >
-      bash -c "python manage.py makemigrations --noinput &&
-               python manage.py migrate --noinput &&
-               celery -A core beat -l info --scheduler django_celery_beat.schedulers:DatabaseScheduler"
+    command: celery -A core beat -l info --scheduler django_celery_beat.schedulers:DatabaseScheduler
 
   # ============================================
   # Celery Flower - Task Monitoring - Port 5550
