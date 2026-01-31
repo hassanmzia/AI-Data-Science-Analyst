@@ -78,6 +78,8 @@ services:
     environment:
       - IS_PERSISTENT=TRUE
       - ANONYMIZED_TELEMETRY=FALSE
+    healthcheck:
+      disable: true
     networks:
       - ds-network
 
