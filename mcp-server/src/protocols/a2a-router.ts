@@ -9,13 +9,13 @@ export class A2ARouter {
     this.agentManager = agentManager;
   }
 
-  listAgents(req: Request, res: Response): void {
+  listAgents(_req: Request, res: Response): void {
     const agents = this.agentManager.getAgentList();
     res.json({ agents });
   }
 
   getAgentCard(req: Request, res: Response): void {
-    const { agentId } = req.params;
+    const agentId = String(req.params.agentId);
     const agent = this.agentManager.getAgent(agentId);
 
     if (!agent) {
@@ -46,7 +46,7 @@ export class A2ARouter {
   }
 
   createTask(req: Request, res: Response): void {
-    const { agentId } = req.params;
+    const agentId = String(req.params.agentId);
     const agent = this.agentManager.getAgent(agentId);
 
     if (!agent) {
@@ -69,7 +69,7 @@ export class A2ARouter {
   }
 
   getTask(req: Request, res: Response): void {
-    const { taskId } = req.params;
+    const taskId = String(req.params.taskId);
     const task = this.agentManager.getTask(taskId);
 
     if (!task) {
@@ -89,7 +89,7 @@ export class A2ARouter {
   }
 
   cancelTask(req: Request, res: Response): void {
-    const { taskId } = req.params;
+    const taskId = String(req.params.taskId);
     const success = this.agentManager.cancelTask(taskId);
 
     if (success) {
