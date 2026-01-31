@@ -1,7 +1,7 @@
 import axios from 'axios';
 
-const API_URL = process.env.REACT_APP_API_URL || 'http://172.168.1.95:8050';
-const MCP_URL = process.env.REACT_APP_MCP_URL || 'http://172.168.1.95:4050';
+const API_URL = import.meta.env.VITE_API_URL || 'http://172.168.1.95:8050';
+const MCP_URL = import.meta.env.VITE_MCP_URL || 'http://172.168.1.95:4050';
 
 export const api = axios.create({
   baseURL: API_URL,
