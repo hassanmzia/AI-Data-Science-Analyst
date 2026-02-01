@@ -161,6 +161,11 @@ DATA_UPLOAD_MAX_MEMORY_SIZE = 100 * 1024 * 1024
 # AI Settings
 OPENAI_API_KEY = os.environ.get('OPENAI_API_KEY', '')
 OPENAI_ORG_ID = os.environ.get('OPENAI_ORG_ID', '')
+
+# Remove empty OPENAI_ORG_ID from environment to prevent LangChain/OpenAI SDK
+# from sending an empty OpenAI-Organization header (causes 401 errors)
+if not OPENAI_ORG_ID and 'OPENAI_ORG_ID' in os.environ:
+    del os.environ['OPENAI_ORG_ID']
 SERPAPI_API_KEY = os.environ.get('SERPAPI_API_KEY', '')
 MCP_SERVER_URL = os.environ.get('MCP_SERVER_URL', 'http://mcp-server:4050')
 CHROMA_HOST = os.environ.get('CHROMA_HOST', 'chromadb')
