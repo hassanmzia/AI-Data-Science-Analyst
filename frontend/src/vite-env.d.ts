@@ -10,14 +10,13 @@ interface ImportMeta {
   readonly env: ImportMetaEnv;
 }
 
-declare module 'react-plotly.js' {
-  import { Component } from 'react';
-  interface PlotParams {
-    data: any[];
-    layout?: any;
-    config?: any;
-    style?: React.CSSProperties;
-    className?: string;
-  }
-  export default class Plot extends Component<PlotParams> {}
+declare module 'plotly.js-dist-min' {
+  import Plotly from 'plotly.js';
+  export default Plotly;
+}
+
+declare module 'react-plotly.js/factory' {
+  import { ComponentType } from 'react';
+  function createPlotlyComponent(plotly: any): ComponentType<any>;
+  export default createPlotlyComponent;
 }

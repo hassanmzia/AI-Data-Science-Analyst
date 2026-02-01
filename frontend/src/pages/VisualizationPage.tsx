@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { BarChart3, Play, Loader2 } from 'lucide-react';
-import Plot from 'react-plotly.js';
+import Plot from '../components/PlotlyChart';
 import { analysisApi, datasetApi } from '../services/api';
 import { Dataset, Visualization } from '../types';
 import toast from 'react-hot-toast';
