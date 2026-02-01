@@ -1,0 +1,416 @@
+<mxfile host="app.diagrams.net" modified="2026-02-01" agent="Claude" version="22.0" type="device">
+  <diagram id="architecture" name="AI Data Science Analyst - Technical Architecture">
+    <mxGraphModel dx="2800" dy="2000" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="0" pageScale="1" pageWidth="3300" pageHeight="2400" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <!-- Title -->
+        <mxCell id="title" value="AI Data Science &amp; Analyst Assistant - Technical Architecture" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=24;fontStyle=1;fontColor=#1a1a2e;" vertex="1" parent="1">
+          <mxGeometry x="600" y="-80" width="900" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="subtitle" value="Multi-Agent AI System with MCP/A2A Protocols | Docker Containerized | GPU-Accelerated" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=14;fontColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="600" y="-40" width="900" height="30" as="geometry" />
+        </mxCell>
+
+        <!-- ==================== USER LAYER ==================== -->
+        <mxCell id="user_layer" value="User Layer" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=12;fontStyle=1;fontColor=#0d47a1;" vertex="1" parent="1">
+          <mxGeometry x="30" y="10" width="120" height="20" as="geometry" />
+        </mxCell>
+
+        <!-- Browser -->
+        <mxCell id="browser" value="&lt;b&gt;Web Browser&lt;/b&gt;&lt;br&gt;User Interface" style="shape=mxgraph.cisco.computers_and_peripherals.web_browser;html=1;whiteSpace=wrap;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="960" y="20" width="80" height="60" as="geometry" />
+        </mxCell>
+
+        <!-- ==================== FRONTEND LAYER ==================== -->
+        <mxCell id="frontend_group" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1f5fe;strokeColor=#0288d1;strokeWidth=2;dashed=1;verticalAlign=top;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="650" y="120" width="700" height="180" as="geometry" />
+        </mxCell>
+        <mxCell id="frontend_label" value="Frontend Container (ds-frontend) - Port 3050" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=12;fontStyle=1;fontColor=#0288d1;" vertex="1" parent="1">
+          <mxGeometry x="660" y="125" width="350" height="20" as="geometry" />
+        </mxCell>
+
+        <!-- Nginx -->
+        <mxCell id="nginx" value="&lt;b&gt;Nginx&lt;/b&gt;&lt;br&gt;Reverse Proxy&lt;br&gt;&lt;font style=&quot;font-size:9px&quot;&gt;Static Assets&lt;br&gt;Gzip&lt;br&gt;SPA Routing&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#bbdefb;strokeColor=#1565c0;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="670" y="155" width="120" height="80" as="geometry" />
+        </mxCell>
+
+        <!-- React App -->
+        <mxCell id="react_app" value="&lt;b&gt;React 18 + TypeScript&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:9px&quot;&gt;Vite Build | Tailwind CSS&lt;br&gt;Zustand State | React Query&lt;br&gt;React Router v7&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#bbdefb;strokeColor=#1565c0;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="820" y="155" width="160" height="80" as="geometry" />
+        </mxCell>
+
+        <!-- Frontend Pages -->
+        <mxCell id="pages" value="&lt;b&gt;10 Pages&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:8px&quot;&gt;Dashboard | Assistant&lt;br&gt;Datasets | Analysis&lt;br&gt;Visualization | ML Models&lt;br&gt;Documents | Projects&lt;br&gt;Archive | Settings&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#bbdefb;strokeColor=#1565c0;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1010" y="150" width="140" height="90" as="geometry" />
+        </mxCell>
+
+        <!-- Plotly -->
+        <mxCell id="plotly" value="&lt;b&gt;Plotly.js&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:9px&quot;&gt;Interactive&lt;br&gt;Charts&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#bbdefb;strokeColor=#1565c0;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1180" y="155" width="80" height="70" as="geometry" />
+        </mxCell>
+
+        <!-- Connections within frontend -->
+        <mxCell id="e_nginx_react" style="edgeStyle=orthogonalEdgeStyle;" edge="1" parent="1" source="nginx" target="react_app">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_react_pages" style="edgeStyle=orthogonalEdgeStyle;" edge="1" parent="1" source="react_app" target="pages">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Browser to Frontend -->
+        <mxCell id="e_browser_nginx" value="HTTPS" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#0288d1;strokeWidth=2;" edge="1" parent="1" source="browser" target="nginx">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- ==================== API GATEWAY LAYER ==================== -->
+
+        <!-- REST API Arrow -->
+        <mxCell id="e_frontend_backend" value="REST API&lt;br&gt;(Axios)" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#2e7d32;strokeWidth=2;fontSize=10;" edge="1" parent="1" source="react_app" target="backend_api">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="900" y="340" />
+              <mxPoint x="620" y="340" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- WebSocket Arrow -->
+        <mxCell id="e_frontend_ws" value="WebSocket" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#f57c00;strokeWidth=2;dashed=1;fontSize=10;" edge="1" parent="1" source="react_app" target="websocket">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="900" y="360" />
+              <mxPoint x="820" y="360" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- MCP Arrow -->
+        <mxCell id="e_frontend_mcp" value="MCP/A2A&lt;br&gt;Protocol" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#7b1fa2;strokeWidth=2;fontSize=10;" edge="1" parent="1" source="react_app" target="mcp_server">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="950" y="380" />
+              <mxPoint x="1200" y="380" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- ==================== BACKEND LAYER ==================== -->
+        <mxCell id="backend_group" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e8f5e9;strokeColor=#2e7d32;strokeWidth=2;dashed=1;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="30" y="400" width="860" height="380" as="geometry" />
+        </mxCell>
+        <mxCell id="backend_label" value="Backend Container (ds-backend) - Port 8050 | Django 5.1 + Daphne ASGI" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=12;fontStyle=1;fontColor=#2e7d32;" vertex="1" parent="1">
+          <mxGeometry x="40" y="405" width="500" height="20" as="geometry" />
+        </mxCell>
+
+        <!-- Django REST API -->
+        <mxCell id="backend_api" value="&lt;b&gt;Django REST Framework&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:9px&quot;&gt;drf-spectacular (OpenAPI)&lt;br&gt;CORS | CSRF | Filters&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#c8e6c9;strokeColor=#2e7d32;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="540" y="435" width="170" height="60" as="geometry" />
+        </mxCell>
+
+        <!-- WebSocket -->
+        <mxCell id="websocket" value="&lt;b&gt;Django Channels&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:9px&quot;&gt;WebSocket Consumers&lt;br&gt;Chat | Analysis&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe0b2;strokeColor=#f57c00;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="730" y="435" width="140" height="60" as="geometry" />
+        </mxCell>
+
+        <!-- Django Apps -->
+        <mxCell id="app_datasets" value="&lt;b&gt;datasets&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:8px&quot;&gt;Upload | Import&lt;br&gt;Kaggle | URL | DB&lt;br&gt;CSV/Excel/JSON/Parquet&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#c8e6c9;strokeColor=#388e3c;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="50" y="520" width="130" height="75" as="geometry" />
+        </mxCell>
+
+        <mxCell id="app_analysis" value="&lt;b&gt;analysis&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:8px&quot;&gt;EDA | Visualization&lt;br&gt;ML Training | DL Training&lt;br&gt;Hypothesis Tests | SQL&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#c8e6c9;strokeColor=#388e3c;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="200" y="520" width="140" height="75" as="geometry" />
+        </mxCell>
+
+        <mxCell id="app_agents" value="&lt;b&gt;agents&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:8px&quot;&gt;AgentOrchestrator&lt;br&gt;6 Specialized Agents&lt;br&gt;Conversations | Chat&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#c8e6c9;strokeColor=#388e3c;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="360" y="520" width="130" height="75" as="geometry" />
+        </mxCell>
+
+        <mxCell id="app_projects" value="&lt;b&gt;projects&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:8px&quot;&gt;Project Management&lt;br&gt;Notes &amp; Findings&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#c8e6c9;strokeColor=#388e3c;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="510" y="520" width="120" height="75" as="geometry" />
+        </mxCell>
+
+        <mxCell id="app_archive" value="&lt;b&gt;archive&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:8px&quot;&gt;Templates&lt;br&gt;Archived Projects&lt;br&gt;Reusable Workflows&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#c8e6c9;strokeColor=#388e3c;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="650" y="520" width="120" height="75" as="geometry" />
+        </mxCell>
+
+        <!-- AI/ML Stack -->
+        <mxCell id="ai_stack" value="&lt;b&gt;AI/ML Stack&lt;/b&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=11;fontStyle=1;fontColor=#388e3c;" vertex="1" parent="1">
+          <mxGeometry x="50" y="615" width="100" height="20" as="geometry" />
+        </mxCell>
+
+        <mxCell id="langchain" value="&lt;b&gt;LangChain&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:8px&quot;&gt;Pandas Agent&lt;br&gt;Code Generation&lt;br&gt;Tool Calling&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff9c4;strokeColor=#f9a825;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="50" y="640" width="110" height="65" as="geometry" />
+        </mxCell>
+
+        <mxCell id="openai" value="&lt;b&gt;OpenAI GPT-4o&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:8px&quot;&gt;Chat Completions&lt;br&gt;Code Generation&lt;br&gt;NL→SQL&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff9c4;strokeColor=#f9a825;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="180" y="640" width="110" height="65" as="geometry" />
+        </mxCell>
+
+        <mxCell id="sklearn" value="&lt;b&gt;scikit-learn&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:8px&quot;&gt;9 ML Models&lt;br&gt;Classification&lt;br&gt;Regression&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff9c4;strokeColor=#f9a825;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="310" y="640" width="100" height="65" as="geometry" />
+        </mxCell>
+
+        <mxCell id="pytorch" value="&lt;b&gt;PyTorch&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:8px&quot;&gt;CNN | RNN | LSTM&lt;br&gt;GRU | Transformer&lt;br&gt;GPU (CUDA 12.8)&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffccbc;strokeColor=#e64a19;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="430" y="640" width="110" height="65" as="geometry" />
+        </mxCell>
+
+        <mxCell id="tensorflow" value="&lt;b&gt;TensorFlow&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:8px&quot;&gt;Keras API&lt;br&gt;DL Training&lt;br&gt;GPU (CUDA 12.8)&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffccbc;strokeColor=#e64a19;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="560" y="640" width="100" height="65" as="geometry" />
+        </mxCell>
+
+        <mxCell id="xgboost" value="&lt;b&gt;XGBoost&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:8px&quot;&gt;Gradient Boosting&lt;br&gt;GPU Hist&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffccbc;strokeColor=#e64a19;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="680" y="640" width="90" height="65" as="geometry" />
+        </mxCell>
+
+        <mxCell id="datascience" value="&lt;b&gt;Data Science&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:8px&quot;&gt;Pandas | NumPy&lt;br&gt;SciPy | Matplotlib&lt;br&gt;Seaborn | Plotly&lt;br&gt;Statsmodels&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff9c4;strokeColor=#f9a825;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="790" y="640" width="90" height="80" as="geometry" />
+        </mxCell>
+
+        <!-- ==================== MCP SERVER ==================== -->
+        <mxCell id="mcp_group" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f3e5f5;strokeColor=#7b1fa2;strokeWidth=2;dashed=1;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="920" y="400" width="430" height="380" as="geometry" />
+        </mxCell>
+        <mxCell id="mcp_label" value="MCP/A2A Server (ds-mcp-server) - Port 4050 | Node.js + TypeScript" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=12;fontStyle=1;fontColor=#7b1fa2;" vertex="1" parent="1">
+          <mxGeometry x="930" y="405" width="420" height="20" as="geometry" />
+        </mxCell>
+
+        <!-- MCP Server -->
+        <mxCell id="mcp_server" value="&lt;b&gt;Express Server&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:9px&quot;&gt;REST + WebSocket&lt;br&gt;CORS | JSON 50MB&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1bee7;strokeColor=#7b1fa2;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="1060" y="435" width="140" height="55" as="geometry" />
+        </mxCell>
+
+        <!-- MCP Protocol -->
+        <mxCell id="mcp_protocol" value="&lt;b&gt;MCP Protocol&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:8px&quot;&gt;tools/list | tools/call&lt;br&gt;resources/list | read&lt;br&gt;prompts/list | get&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1bee7;strokeColor=#7b1fa2;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="940" y="510" width="130" height="70" as="geometry" />
+        </mxCell>
+
+        <!-- A2A Protocol -->
+        <mxCell id="a2a_protocol" value="&lt;b&gt;A2A Protocol&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:8px&quot;&gt;Agent Cards&lt;br&gt;Task Create/Status&lt;br&gt;Agent Discovery&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1bee7;strokeColor=#7b1fa2;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1090" y="510" width="120" height="70" as="geometry" />
+        </mxCell>
+
+        <!-- Tool Registry -->
+        <mxCell id="tool_registry" value="&lt;b&gt;Tool Registry&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:8px&quot;&gt;8+ Built-in Tools&lt;br&gt;eda_analysis | create_viz&lt;br&gt;train_ml | train_dl&lt;br&gt;hypothesis_test | sql_query&lt;br&gt;get_dataset | query_docs&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1bee7;strokeColor=#7b1fa2;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1230" y="510" width="110" height="90" as="geometry" />
+        </mxCell>
+
+        <!-- Agent Manager -->
+        <mxCell id="agent_manager" value="&lt;b&gt;Agent Manager&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:9px&quot;&gt;6 Specialized AI Agents&lt;/font&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=11;fontColor=#7b1fa2;" vertex="1" parent="1">
+          <mxGeometry x="940" y="600" width="200" height="20" as="geometry" />
+        </mxCell>
+
+        <mxCell id="agent_da" value="&lt;b&gt;Data Analyst&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:7px&quot;&gt;EDA | Stats&lt;br&gt;Profiling&lt;/font&gt;" style="ellipse;whiteSpace=wrap;html=1;fillColor=#ce93d8;strokeColor=#6a1b9a;fontSize=9;" vertex="1" parent="1">
+          <mxGeometry x="940" y="625" width="90" height="55" as="geometry" />
+        </mxCell>
+
+        <mxCell id="agent_ds" value="&lt;b&gt;Data Scientist&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:7px&quot;&gt;ML | Hypothesis&lt;br&gt;Features&lt;/font&gt;" style="ellipse;whiteSpace=wrap;html=1;fillColor=#ce93d8;strokeColor=#6a1b9a;fontSize=9;" vertex="1" parent="1">
+          <mxGeometry x="1040" y="625" width="90" height="55" as="geometry" />
+        </mxCell>
+
+        <mxCell id="agent_sql" value="&lt;b&gt;SQL Expert&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:7px&quot;&gt;NL→SQL&lt;br&gt;Queries&lt;/font&gt;" style="ellipse;whiteSpace=wrap;html=1;fillColor=#ce93d8;strokeColor=#6a1b9a;fontSize=9;" vertex="1" parent="1">
+          <mxGeometry x="1140" y="625" width="85" height="55" as="geometry" />
+        </mxCell>
+
+        <mxCell id="agent_viz" value="&lt;b&gt;Viz Expert&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:7px&quot;&gt;Charts&lt;br&gt;Dashboards&lt;/font&gt;" style="ellipse;whiteSpace=wrap;html=1;fillColor=#ce93d8;strokeColor=#6a1b9a;fontSize=9;" vertex="1" parent="1">
+          <mxGeometry x="940" y="690" width="90" height="55" as="geometry" />
+        </mxCell>
+
+        <mxCell id="agent_rag" value="&lt;b&gt;RAG Assistant&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:7px&quot;&gt;Document QA&lt;br&gt;Search&lt;/font&gt;" style="ellipse;whiteSpace=wrap;html=1;fillColor=#ce93d8;strokeColor=#6a1b9a;fontSize=9;" vertex="1" parent="1">
+          <mxGeometry x="1040" y="690" width="90" height="55" as="geometry" />
+        </mxCell>
+
+        <mxCell id="agent_ml" value="&lt;b&gt;ML Engineer&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:7px&quot;&gt;Model Design&lt;br&gt;Tuning&lt;/font&gt;" style="ellipse;whiteSpace=wrap;html=1;fillColor=#ce93d8;strokeColor=#6a1b9a;fontSize=9;" vertex="1" parent="1">
+          <mxGeometry x="1140" y="690" width="90" height="55" as="geometry" />
+        </mxCell>
+
+        <!-- MCP to Backend -->
+        <mxCell id="e_mcp_backend" value="HTTP API Calls" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#7b1fa2;strokeWidth=2;fontSize=10;" edge="1" parent="1" source="mcp_server" target="backend_api">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="930" y="462" />
+              <mxPoint x="930" y="462" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- ==================== CELERY WORKERS ==================== -->
+        <mxCell id="celery_group" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fce4ec;strokeColor=#c62828;strokeWidth=2;dashed=1;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="30" y="820" width="600" height="160" as="geometry" />
+        </mxCell>
+        <mxCell id="celery_label" value="Async Task Processing (Celery)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=12;fontStyle=1;fontColor=#c62828;" vertex="1" parent="1">
+          <mxGeometry x="40" y="825" width="280" height="20" as="geometry" />
+        </mxCell>
+
+        <mxCell id="celery_worker" value="&lt;b&gt;Celery Worker&lt;/b&gt;&lt;br&gt;(ds-celery-worker)&lt;br&gt;&lt;font style=&quot;font-size:8px&quot;&gt;4 Concurrent Workers&lt;br&gt;Queues: default, ml_tasks,&lt;br&gt;analysis_tasks&lt;br&gt;&lt;b&gt;GPU Enabled (CUDA 12.8)&lt;/b&gt;&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffcdd2;strokeColor=#c62828;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="50" y="855" width="170" height="100" as="geometry" />
+        </mxCell>
+
+        <mxCell id="celery_beat" value="&lt;b&gt;Celery Beat&lt;/b&gt;&lt;br&gt;(ds-celery-beat)&lt;br&gt;&lt;font style=&quot;font-size:8px&quot;&gt;Scheduled Tasks&lt;br&gt;DatabaseScheduler&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffcdd2;strokeColor=#c62828;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="250" y="860" width="150" height="80" as="geometry" />
+        </mxCell>
+
+        <mxCell id="flower" value="&lt;b&gt;Flower&lt;/b&gt;&lt;br&gt;(ds-flower)&lt;br&gt;&lt;font style=&quot;font-size:8px&quot;&gt;Port 5550&lt;br&gt;Task Monitoring UI&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffcdd2;strokeColor=#c62828;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="430" y="860" width="140" height="80" as="geometry" />
+        </mxCell>
+
+        <!-- Backend to Celery -->
+        <mxCell id="e_backend_celery" value="Task Queue" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#c62828;strokeWidth=2;fontSize=10;" edge="1" parent="1" source="app_analysis" target="celery_worker">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- ==================== DATA LAYER ==================== -->
+        <mxCell id="data_layer" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff3e0;strokeColor=#e65100;strokeWidth=2;dashed=1;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="660" y="820" width="690" height="160" as="geometry" />
+        </mxCell>
+        <mxCell id="data_label" value="Data Layer - Persistent Storage" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=12;fontStyle=1;fontColor=#e65100;" vertex="1" parent="1">
+          <mxGeometry x="670" y="825" width="250" height="20" as="geometry" />
+        </mxCell>
+
+        <!-- PostgreSQL -->
+        <mxCell id="postgres" value="&lt;b&gt;PostgreSQL 16&lt;/b&gt;&lt;br&gt;(ds-postgres)&lt;br&gt;&lt;font style=&quot;font-size:8px&quot;&gt;Port 5450&lt;br&gt;UUID | pg_trgm&lt;br&gt;analytics &amp; archive schemas&lt;/font&gt;" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=10;fillColor=#ffe0b2;strokeColor=#e65100;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="680" y="855" width="130" height="100" as="geometry" />
+        </mxCell>
+
+        <!-- Redis -->
+        <mxCell id="redis" value="&lt;b&gt;Redis 7&lt;/b&gt;&lt;br&gt;(ds-redis)&lt;br&gt;&lt;font style=&quot;font-size:8px&quot;&gt;Port 6350&lt;br&gt;Cache | Celery Broker&lt;br&gt;Channel Layers&lt;/font&gt;" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=10;fillColor=#ffe0b2;strokeColor=#e65100;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="840" y="855" width="120" height="100" as="geometry" />
+        </mxCell>
+
+        <!-- ChromaDB -->
+        <mxCell id="chromadb" value="&lt;b&gt;ChromaDB&lt;/b&gt;&lt;br&gt;(ds-chromadb)&lt;br&gt;&lt;font style=&quot;font-size:8px&quot;&gt;Port 6340&lt;br&gt;Vector Store&lt;br&gt;RAG Embeddings&lt;/font&gt;" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=10;fillColor=#ffe0b2;strokeColor=#e65100;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="990" y="855" width="120" height="100" as="geometry" />
+        </mxCell>
+
+        <!-- pgAdmin -->
+        <mxCell id="pgadmin" value="&lt;b&gt;pgAdmin 4&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:8px&quot;&gt;Port 5460&lt;br&gt;DB Admin UI&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe0b2;strokeColor=#e65100;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1140" y="870" width="100" height="60" as="geometry" />
+        </mxCell>
+
+        <!-- File Storage -->
+        <mxCell id="file_storage" value="&lt;b&gt;Volume Mounts&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:8px&quot;&gt;media_data | model_data&lt;br&gt;Uploads | Exports&lt;br&gt;Visualizations | ML Models&lt;/font&gt;" style="shape=document;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=0.1;fillColor=#ffe0b2;strokeColor=#e65100;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1260" y="855" width="120" height="80" as="geometry" />
+        </mxCell>
+
+        <!-- Backend to Data connections -->
+        <mxCell id="e_backend_pg" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#e65100;" edge="1" parent="1" source="app_datasets" target="postgres">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_ws_redis" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#e65100;" edge="1" parent="1" source="websocket" target="redis">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_celery_redis" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#e65100;" edge="1" parent="1" source="celery_worker" target="redis">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- ==================== GPU LAYER ==================== -->
+        <mxCell id="gpu_box" value="&lt;b&gt;NVIDIA RTX 5090 (Blackwell sm_120)&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:9px&quot;&gt;32 GB VRAM | CUDA 12.8 | cuDNN | Driver 570.86&lt;br&gt;PyTorch Nightly cu128 | TensorFlow 2.18 | XGBoost GPU&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#76ff03;strokeColor=#33691e;fontSize=11;fontStyle=0;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="30" y="1020" width="600" height="50" as="geometry" />
+        </mxCell>
+
+        <!-- GPU to Celery -->
+        <mxCell id="e_gpu_celery" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#33691e;strokeWidth=2;" edge="1" parent="1" source="gpu_box" target="celery_worker">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- ==================== EXTERNAL SERVICES ==================== -->
+        <mxCell id="ext_group" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#eceff1;strokeColor=#546e7a;strokeWidth=2;dashed=1;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="1380" y="120" width="200" height="340" as="geometry" />
+        </mxCell>
+        <mxCell id="ext_label" value="External Services" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=12;fontStyle=1;fontColor=#546e7a;" vertex="1" parent="1">
+          <mxGeometry x="1390" y="125" width="180" height="20" as="geometry" />
+        </mxCell>
+
+        <mxCell id="ext_openai" value="&lt;b&gt;OpenAI API&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:8px&quot;&gt;GPT-4o / GPT-4o-mini&lt;br&gt;text-embedding-3-large&lt;br&gt;Chat Completions&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#cfd8dc;strokeColor=#546e7a;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1400" y="155" width="160" height="70" as="geometry" />
+        </mxCell>
+
+        <mxCell id="ext_kaggle" value="&lt;b&gt;Kaggle API&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:8px&quot;&gt;Dataset Import&lt;br&gt;Competition Data&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#cfd8dc;strokeColor=#546e7a;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1400" y="240" width="160" height="55" as="geometry" />
+        </mxCell>
+
+        <mxCell id="ext_serp" value="&lt;b&gt;SerpAPI&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:8px&quot;&gt;Web Search&lt;br&gt;Google Results&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#cfd8dc;strokeColor=#546e7a;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1400" y="310" width="160" height="55" as="geometry" />
+        </mxCell>
+
+        <mxCell id="ext_extdb" value="&lt;b&gt;External Databases&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:8px&quot;&gt;PostgreSQL | MySQL&lt;br&gt;SQLite | MS SQL&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#cfd8dc;strokeColor=#546e7a;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1400" y="380" width="160" height="55" as="geometry" />
+        </mxCell>
+
+        <!-- Backend to External -->
+        <mxCell id="e_agents_openai" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#546e7a;strokeWidth=1;" edge="1" parent="1" source="app_agents" target="ext_openai">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="425" y="500" />
+              <mxPoint x="1370" y="500" />
+              <mxPoint x="1370" y="190" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- ==================== NETWORK ==================== -->
+        <mxCell id="network" value="&lt;b&gt;Docker Network: ds-analyst-network&lt;/b&gt; (bridge)" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=11;fontStyle=0;fontColor=#37474f;" vertex="1" parent="1">
+          <mxGeometry x="500" y="1020" width="350" height="20" as="geometry" />
+        </mxCell>
+
+        <!-- ==================== LEGEND ==================== -->
+        <mxCell id="legend_box" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fafafa;strokeColor=#9e9e9e;strokeWidth=1;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="1380" y="500" width="200" height="260" as="geometry" />
+        </mxCell>
+        <mxCell id="legend_title" value="&lt;b&gt;Legend&lt;/b&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=center;fontSize=12;fontColor=#37474f;" vertex="1" parent="1">
+          <mxGeometry x="1380" y="505" width="200" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="leg1" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1f5fe;strokeColor=#0288d1;" vertex="1" parent="1">
+          <mxGeometry x="1395" y="535" width="20" height="15" as="geometry" />
+        </mxCell>
+        <mxCell id="leg1t" value="Frontend (React)" style="text;html=1;strokeColor=none;fillColor=none;align=left;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1420" y="533" width="120" height="18" as="geometry" />
+        </mxCell>
+        <mxCell id="leg2" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e8f5e9;strokeColor=#2e7d32;" vertex="1" parent="1">
+          <mxGeometry x="1395" y="560" width="20" height="15" as="geometry" />
+        </mxCell>
+        <mxCell id="leg2t" value="Backend (Django)" style="text;html=1;strokeColor=none;fillColor=none;align=left;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1420" y="558" width="120" height="18" as="geometry" />
+        </mxCell>
+        <mxCell id="leg3" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f3e5f5;strokeColor=#7b1fa2;" vertex="1" parent="1">
+          <mxGeometry x="1395" y="585" width="20" height="15" as="geometry" />
+        </mxCell>
+        <mxCell id="leg3t" value="MCP/A2A Server" style="text;html=1;strokeColor=none;fillColor=none;align=left;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1420" y="583" width="120" height="18" as="geometry" />
+        </mxCell>
+        <mxCell id="leg4" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fce4ec;strokeColor=#c62828;" vertex="1" parent="1">
+          <mxGeometry x="1395" y="610" width="20" height="15" as="geometry" />
+        </mxCell>
+        <mxCell id="leg4t" value="Celery Workers" style="text;html=1;strokeColor=none;fillColor=none;align=left;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1420" y="608" width="120" height="18" as="geometry" />
+        </mxCell>
+        <mxCell id="leg5" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff3e0;strokeColor=#e65100;" vertex="1" parent="1">
+          <mxGeometry x="1395" y="635" width="20" height="15" as="geometry" />
+        </mxCell>
+        <mxCell id="leg5t" value="Data Storage" style="text;html=1;strokeColor=none;fillColor=none;align=left;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1420" y="633" width="120" height="18" as="geometry" />
+        </mxCell>
+        <mxCell id="leg6" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff9c4;strokeColor=#f9a825;" vertex="1" parent="1">
+          <mxGeometry x="1395" y="660" width="20" height="15" as="geometry" />
+        </mxCell>
+        <mxCell id="leg6t" value="AI/ML Libraries" style="text;html=1;strokeColor=none;fillColor=none;align=left;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1420" y="658" width="120" height="18" as="geometry" />
+        </mxCell>
+        <mxCell id="leg7" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffccbc;strokeColor=#e64a19;" vertex="1" parent="1">
+          <mxGeometry x="1395" y="685" width="20" height="15" as="geometry" />
+        </mxCell>
+        <mxCell id="leg7t" value="GPU-Accelerated" style="text;html=1;strokeColor=none;fillColor=none;align=left;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1420" y="683" width="120" height="18" as="geometry" />
+        </mxCell>
+        <mxCell id="leg8" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#eceff1;strokeColor=#546e7a;" vertex="1" parent="1">
+          <mxGeometry x="1395" y="710" width="20" height="15" as="geometry" />
+        </mxCell>
+        <mxCell id="leg8t" value="External Services" style="text;html=1;strokeColor=none;fillColor=none;align=left;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1420" y="708" width="120" height="18" as="geometry" />
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
