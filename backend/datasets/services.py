@@ -185,12 +185,39 @@ class DatasetService:
         from .models import Dataset
         import httpx
 
+        # Detect Kaggle dataset page URLs and reject them with guidance
+        if 'kaggle.com/datasets/' in url and not url.endswith(('.csv', '.json', '.xlsx', '.parquet', '.zip')):
+            raise ValueError(
+                "This looks like a Kaggle dataset page, not a direct file URL. "
+                "Please use the Kaggle Import feature instead with the dataset reference "
+                f"(e.g., \"{'/'.join(url.rstrip('/').split('/')[-2:])}\")."
+            )
+
         response = httpx.get(url, follow_redirects=True, timeout=60)
         response.raise_for_status()
+
+        # Validate content type - reject HTML pages
+        content_type = response.headers.get('content-type', '')
+        if 'text/html' in content_type:
+            raise ValueError(
+                "The URL returned an HTML page, not a data file. "
+                "Please provide a direct link to a CSV, Excel, JSON, or Parquet file."
+            )
 
         filename = url.split('/')[-1].split('?')[0] or 'data.csv'
         ext = Path(filename).suffix.lower().lstrip('.')
         format_map = {'csv': 'csv', 'xlsx': 'xlsx', 'json': 'json', 'parquet': 'parquet'}
+
+        # If no recognized extension, try to infer from content type
+        if ext not in format_map:
+            if 'text/csv' in content_type or 'application/csv' in content_type:
+                ext = 'csv'
+                filename = filename + '.csv' if '.' not in filename else filename
+            elif 'json' in content_type:
+                ext = 'json'
+                filename = filename + '.json' if '.' not in filename else filename
+            else:
+                ext = 'csv'  # Default assumption
 
         dataset = Dataset(
             name=name or filename,
@@ -212,6 +239,12 @@ class DatasetService:
             dataset.save()
         except Exception as e:
             logger.error(f"URL import metadata error: {e}")
+            # Delete the bad dataset since we can't read it
+            dataset.delete()
+            raise ValueError(
+                f"Downloaded file could not be parsed as a valid dataset: {e}. "
+                "Make sure the URL points directly to a data file (CSV, Excel, JSON, or Parquet)."
+            )
 
         return dataset
 

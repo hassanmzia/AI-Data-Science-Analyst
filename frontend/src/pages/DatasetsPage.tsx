@@ -1,12 +1,23 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   Upload, Database, Globe, Download, Trash2, Eye, BarChart3,
-  Plus, Search, FileSpreadsheet, RefreshCw
+  Plus, Search, FileSpreadsheet, RefreshCw, CheckCircle, XCircle, Loader2
 } from 'lucide-react';
 import { useDropzone } from 'react-dropzone';
 import { datasetApi, connectionApi } from '../services/api';
 import { Dataset } from '../types';
 import toast from 'react-hot-toast';
+
+interface DbConnection {
+  id: string;
+  name: string;
+  engine: string;
+  host: string;
+  port: number;
+  database: string;
+  username: string;
+  is_active: boolean;
+}
 
 export default function DatasetsPage() {
   const [datasets, setDatasets] = useState<Dataset[]>([]);
@@ -20,6 +31,19 @@ export default function DatasetsPage() {
   const [kaggleRef, setKaggleRef] = useState('');
   const [urlInput, setUrlInput] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
+
+  // Database import state
+  const [connections, setConnections] = useState<DbConnection[]>([]);
+  const [showNewConn, setShowNewConn] = useState(false);
+  const [selectedConnId, setSelectedConnId] = useState('');
+  const [dbTables, setDbTables] = useState<string[]>([]);
+  const [dbQuery, setDbQuery] = useState('');
+  const [dbImportName, setDbImportName] = useState('');
+  const [dbLoading, setDbLoading] = useState(false);
+  const [newConn, setNewConn] = useState({
+    name: '', engine: 'postgresql', host: '', port: 5432,
+    database: '', username: '', password: '',
+  });
 
   useEffect(() => { loadDatasets(); }, []);
 
@@ -104,6 +128,81 @@ export default function DatasetsPage() {
     } catch (e) { toast.error('Delete failed'); }
   }
 
+  async function loadConnections() {
+    try {
+      const res = await connectionApi.list();
+      setConnections(res.data.results || res.data || []);
+    } catch (e) { console.error(e); }
+  }
+
+  async function createConnection() {
+    try {
+      await connectionApi.create(newConn);
+      toast.success('Connection created');
+      setShowNewConn(false);
+      setNewConn({ name: '', engine: 'postgresql', host: '', port: 5432, database: '', username: '', password: '' });
+      loadConnections();
+    } catch (e: any) {
+      toast.error(`Failed: ${e.response?.data?.error || e.message}`);
+    }
+  }
+
+  async function testConnection(id: string) {
+    try {
+      const res = await connectionApi.test(id);
+      if (res.data.success) toast.success('Connection successful');
+      else toast.error(`Connection failed: ${res.data.message}`);
+    } catch (e: any) {
+      toast.error(`Connection failed: ${e.response?.data?.message || e.message}`);
+    }
+  }
+
+  async function loadTables(connId: string) {
+    setSelectedConnId(connId);
+    setDbTables([]);
+    try {
+      const res = await connectionApi.tables(connId);
+      setDbTables(res.data.tables || []);
+    } catch (e: any) {
+      toast.error(`Failed to list tables: ${e.response?.data?.error || e.message}`);
+    }
+  }
+
+  async function importFromDb() {
+    if (!selectedConnId || !dbQuery) {
+      toast.error('Select a connection and enter a query or table name');
+      return;
+    }
+    setDbLoading(true);
+    try {
+      await datasetApi.importDatabase({
+        connection_id: selectedConnId,
+        query: dbQuery,
+        name: dbImportName || undefined,
+      });
+      toast.success('Database import complete');
+      loadDatasets();
+      setDbQuery('');
+      setDbImportName('');
+    } catch (e: any) {
+      toast.error(`Import failed: ${e.response?.data?.error || e.message}`);
+    } finally {
+      setDbLoading(false);
+    }
+  }
+
+  async function deleteConnection(id: string) {
+    if (!window.confirm('Delete this connection?')) return;
+    try {
+      await connectionApi.delete(id);
+      toast.success('Connection deleted');
+      loadConnections();
+      if (selectedConnId === id) { setSelectedConnId(''); setDbTables([]); }
+    } catch (e) { toast.error('Delete failed'); }
+  }
+
+  useEffect(() => { if (showDbImport) loadConnections(); }, [showDbImport]);
+
   const filtered = datasets.filter(d =>
     d.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
@@ -187,9 +286,107 @@ export default function DatasetsPage() {
 
       {/* Database import */}
       {showDbImport && (
-        <div className="mb-6 bg-white rounded-xl p-6 border border-gray-200">
-          <h3 className="font-medium text-gray-900 mb-3">Import from Database</h3>
-          <p className="text-sm text-gray-500">Configure database connections in Settings, then select a connection and table to import.</p>
+        <div className="mb-6 bg-white rounded-xl p-6 border border-gray-200 space-y-4">
+          <div className="flex items-center justify-between">
+            <h3 className="font-medium text-gray-900">Import from Database</h3>
+            <button onClick={() => setShowNewConn(!showNewConn)}
+              className="px-3 py-1 bg-orange-600 text-white rounded-lg text-xs hover:bg-orange-700 flex items-center">
+              <Plus size={14} className="mr-1" /> New Connection
+            </button>
+          </div>
+
+          {/* New connection form */}
+          {showNewConn && (
+            <div className="bg-gray-50 rounded-lg p-4 space-y-3">
+              <div className="grid grid-cols-2 gap-3">
+                <input value={newConn.name} onChange={e => setNewConn({...newConn, name: e.target.value})}
+                  placeholder="Connection name" className="px-3 py-2 border rounded-lg text-sm" />
+                <select value={newConn.engine} onChange={e => setNewConn({...newConn, engine: e.target.value})}
+                  className="px-3 py-2 border rounded-lg text-sm">
+                  <option value="postgresql">PostgreSQL</option>
+                  <option value="mysql">MySQL</option>
+                  <option value="sqlite">SQLite</option>
+                  <option value="mssql">MS SQL Server</option>
+                </select>
+                <input value={newConn.host} onChange={e => setNewConn({...newConn, host: e.target.value})}
+                  placeholder="Host" className="px-3 py-2 border rounded-lg text-sm" />
+                <input type="number" value={newConn.port} onChange={e => setNewConn({...newConn, port: parseInt(e.target.value) || 0})}
+                  placeholder="Port" className="px-3 py-2 border rounded-lg text-sm" />
+                <input value={newConn.database} onChange={e => setNewConn({...newConn, database: e.target.value})}
+                  placeholder="Database name" className="px-3 py-2 border rounded-lg text-sm" />
+                <input value={newConn.username} onChange={e => setNewConn({...newConn, username: e.target.value})}
+                  placeholder="Username" className="px-3 py-2 border rounded-lg text-sm" />
+                <input type="password" value={newConn.password} onChange={e => setNewConn({...newConn, password: e.target.value})}
+                  placeholder="Password" className="px-3 py-2 border rounded-lg text-sm" />
+              </div>
+              <div className="flex space-x-2">
+                <button onClick={createConnection} className="px-4 py-2 bg-orange-600 text-white rounded-lg text-sm">
+                  Save Connection
+                </button>
+                <button onClick={() => setShowNewConn(false)} className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg text-sm">
+                  Cancel
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Existing connections */}
+          {connections.length > 0 ? (
+            <div className="space-y-2">
+              <p className="text-xs text-gray-500 font-medium">Connections</p>
+              {connections.map(conn => (
+                <div key={conn.id} className={`flex items-center justify-between p-3 rounded-lg border cursor-pointer ${
+                  selectedConnId === conn.id ? 'border-orange-500 bg-orange-50' : 'border-gray-200 hover:bg-gray-50'
+                }`} onClick={() => loadTables(conn.id)}>
+                  <div>
+                    <p className="text-sm font-medium text-gray-900">{conn.name}</p>
+                    <p className="text-xs text-gray-500">{conn.engine} | {conn.host}:{conn.port}/{conn.database}</p>
+                  </div>
+                  <div className="flex space-x-1">
+                    <button onClick={(e) => { e.stopPropagation(); testConnection(conn.id); }}
+                      className="px-2 py-1 text-xs bg-blue-100 text-blue-700 rounded hover:bg-blue-200">
+                      Test
+                    </button>
+                    <button onClick={(e) => { e.stopPropagation(); deleteConnection(conn.id); }}
+                      className="p-1 hover:bg-red-50 rounded">
+                      <Trash2 size={14} className="text-gray-400 hover:text-red-500" />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-sm text-gray-500 text-center py-2">No connections yet. Create one to get started.</p>
+          )}
+
+          {/* Tables and query */}
+          {selectedConnId && (
+            <div className="space-y-3 border-t border-gray-200 pt-3">
+              {dbTables.length > 0 && (
+                <div>
+                  <p className="text-xs text-gray-500 font-medium mb-1">Tables (click to use)</p>
+                  <div className="flex flex-wrap gap-1">
+                    {dbTables.map(t => (
+                      <button key={t} onClick={() => setDbQuery(`SELECT * FROM ${t}`)}
+                        className="px-2 py-1 text-xs bg-gray-100 hover:bg-gray-200 rounded text-gray-700">
+                        {t}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+              <input value={dbImportName} onChange={e => setDbImportName(e.target.value)}
+                placeholder="Dataset name (optional)" className="w-full px-3 py-2 border rounded-lg text-sm" />
+              <textarea value={dbQuery} onChange={e => setDbQuery(e.target.value)}
+                placeholder="SQL query, e.g. SELECT * FROM my_table" rows={2}
+                className="w-full px-3 py-2 border rounded-lg text-sm resize-none" />
+              <button onClick={importFromDb} disabled={dbLoading || !dbQuery}
+                className="px-4 py-2 bg-orange-600 text-white rounded-lg text-sm hover:bg-orange-700 disabled:opacity-50 flex items-center">
+                {dbLoading ? <Loader2 size={14} className="animate-spin mr-2" /> : <Database size={14} className="mr-2" />}
+                Import Data
+              </button>
+            </div>
+          )}
         </div>
       )}
 
