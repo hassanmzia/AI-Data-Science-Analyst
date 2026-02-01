@@ -480,25 +480,27 @@ Return ONLY the Python code, no markdown fences, no explanation."""
         logger.info(f"DL code generated ({len(code)} chars), executing...")
 
         # Step 2: Execute the code directly in a single exec() call
-        exec_globals = {
+        # IMPORTANT: use a SINGLE dict for both globals and locals.
+        # With separate dicts, class definitions stored in locals can't
+        # reference other locals during class body execution (Python
+        # exec() scoping issue), causing NameError for model classes.
+        exec_ns = {
             'df': df.copy(),
             'pd': pd,
             'np': np,
             '__builtins__': __builtins__,
         }
-        exec_locals = {}
 
         try:
-            exec(code, exec_globals, exec_locals)
+            exec(code, exec_ns)
         except Exception as exec_err:
             logger.warning(f"DL code execution error: {exec_err}")
-            # Try to salvage partial results
-            exec_locals['results'] = {
+            exec_ns['results'] = {
                 'summary': f"Code execution error: {str(exec_err)}",
                 'code': code,
             }
 
-        results = exec_locals.get('results', exec_globals.get('results', {}))
+        results = exec_ns.get('results', {})
         if not isinstance(results, dict):
             results = {'summary': str(results)}
 
