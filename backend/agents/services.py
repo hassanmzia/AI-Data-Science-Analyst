@@ -15,6 +15,7 @@ class AgentOrchestrator:
         self.llm = ChatOpenAI(
             model='gpt-4o-mini',
             openai_api_key=settings.OPENAI_API_KEY,
+            openai_organization=settings.OPENAI_ORG_ID or None,
             temperature=0,
         )
 

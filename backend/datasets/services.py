@@ -444,6 +444,7 @@ class DocumentService:
         embeddings_model = OpenAIEmbeddings(
             model=document.embedding_model,
             openai_api_key=settings.OPENAI_API_KEY,
+            openai_organization=settings.OPENAI_ORG_ID or None,
         )
 
         texts = [chunk.page_content for chunk in chunks]
@@ -485,6 +486,7 @@ class DocumentService:
         embeddings_model = OpenAIEmbeddings(
             model=document.embedding_model,
             openai_api_key=settings.OPENAI_API_KEY,
+            openai_organization=settings.OPENAI_ORG_ID or None,
         )
         query_embedding = embeddings_model.embed_query(question)
 
@@ -500,6 +502,7 @@ class DocumentService:
         llm = ChatOpenAI(
             model='gpt-4o-mini',
             openai_api_key=settings.OPENAI_API_KEY,
+            openai_organization=settings.OPENAI_ORG_ID or None,
             temperature=0,
         )
 
