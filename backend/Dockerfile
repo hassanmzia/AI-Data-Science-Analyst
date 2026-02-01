@@ -1,27 +1,26 @@
-FROM nvidia/cuda:12.4.1-runtime-ubuntu22.04
+FROM nvidia/cuda:12.4.1-runtime-rockylinux9
 
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
-ENV DEBIAN_FRONTEND=noninteractive
 
 WORKDIR /app
 
 # Install Python 3.11 and system dependencies
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    software-properties-common \
-    && add-apt-repository ppa:deadsnakes/ppa \
-    && apt-get update && apt-get install -y --no-install-recommends \
+RUN dnf install -y epel-release && \
+    dnf install -y \
     python3.11 \
-    python3.11-venv \
-    python3.11-dev \
-    python3-pip \
-    build-essential \
-    libpq-dev \
+    python3.11-pip \
+    python3.11-devel \
+    gcc \
+    gcc-c++ \
+    make \
+    libpq-devel \
     curl \
     git \
-    && update-alternatives --install /usr/bin/python python /usr/bin/python3.11 1 \
-    && update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.11 1 \
-    && rm -rf /var/lib/apt/lists/*
+    && alternatives --install /usr/bin/python python /usr/bin/python3.11 1 \
+    && alternatives --install /usr/bin/python3 python3 /usr/bin/python3.11 1 \
+    && alternatives --install /usr/bin/pip pip /usr/bin/pip3.11 1 \
+    && dnf clean all
 
 # Install Python dependencies
 COPY requirements.txt .
