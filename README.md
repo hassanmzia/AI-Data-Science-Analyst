@@ -2,7 +2,7 @@
 
 A professional-grade **multi-agent AI system** for data science and data analytics. Built with Django, React/TypeScript, Node.js (MCP/A2A), PostgreSQL, Redis, ChromaDB, and Docker Compose. Supports **GPU-accelerated deep learning** on NVIDIA RTX 5090 (Blackwell sm_120) with CUDA 12.8.
 
-Based on the LangChain Data Science Assistant project by Mohammed Z Hassan.
+Built by Mohammed Z Hassan.
 
 ---
 
@@ -958,6 +958,6 @@ docker compose logs frontend
 
 ## Author
 
-**Mohammed Z Hassan** — Based on GA NLP Week 12 Final Project: LangChain Data Science Assistant
+**Mohammed Z Hassan**
 
-Transformed from a Jupyter notebook into a production-grade, GPU-accelerated, multi-agent platform with MCP/A2A protocol support, real-time WebSocket communication, and containerized deployment.
+A production-grade, GPU-accelerated, multi-agent data science platform with MCP/A2A protocol support, real-time WebSocket communication, and containerized deployment.
