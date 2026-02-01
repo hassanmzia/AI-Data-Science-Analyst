@@ -103,7 +103,6 @@ services:
       - DJANGO_SECRET_KEY=${DJANGO_SECRET_KEY:-change-me-to-a-random-secret-key}
       - DJANGO_DEBUG=${DJANGO_DEBUG:-True}
       - DJANGO_ALLOWED_HOSTS=${DJANGO_ALLOWED_HOSTS:-172.168.1.95,localhost,127.0.0.1,0.0.0.0}
-      - LD_LIBRARY_PATH=/usr/local/lib/python3.11/site-packages/nvidia/cuda_cupti/lib:/usr/local/lib/python3.11/site-packages/nvidia/cublas/lib:/usr/local/lib/python3.11/site-packages/nvidia/cuda_runtime/lib:/usr/local/lib/python3.11/site-packages/nvidia/cudnn/lib
       - POSTGRES_DB=${POSTGRES_DB:-datascience_db}
       - POSTGRES_USER=${POSTGRES_USER:-ds_admin}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-ds_secure_password_2024}
@@ -180,7 +179,6 @@ services:
       - KAGGLE_KEY=${KAGGLE_KEY:-}
       - CELERY_BROKER_URL=redis://redis:6379/0
       - CELERY_RESULT_BACKEND=redis://redis:6379/1
-      - LD_LIBRARY_PATH=/usr/local/lib/python3.11/site-packages/nvidia/cuda_cupti/lib:/usr/local/lib/python3.11/site-packages/nvidia/cublas/lib:/usr/local/lib/python3.11/site-packages/nvidia/cuda_runtime/lib:/usr/local/lib/python3.11/site-packages/nvidia/cudnn/lib
     volumes:
       - ./backend:/app
       - media_data:/app/media

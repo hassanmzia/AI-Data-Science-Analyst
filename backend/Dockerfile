@@ -1,25 +1,25 @@
-FROM nvidia/cuda:12.4.1-cudnn-runtime-rockylinux9
+FROM nvidia/cuda:12.8.0-cudnn-runtime-rockylinux9
 
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 
 WORKDIR /app
 
-# Install Python 3.11 and system dependencies
+# Install Python 3.12 and system dependencies (PyTorch cu128 for RTX 5090 sm_120 requires Python 3.12+)
 # Note: curl-minimal is pre-installed in CUDA image, skip curl to avoid conflicts
 RUN dnf install -y epel-release && \
     dnf install -y \
-    python3.11 \
-    python3.11-pip \
-    python3.11-devel \
+    python3.12 \
+    python3.12-pip \
+    python3.12-devel \
     gcc \
     gcc-c++ \
     make \
     libpq-devel \
     git \
-    && alternatives --install /usr/bin/python python /usr/bin/python3.11 1 \
-    && alternatives --install /usr/bin/python3 python3 /usr/bin/python3.11 1 \
-    && alternatives --install /usr/bin/pip pip /usr/bin/pip3.11 1 \
+    && alternatives --install /usr/bin/python python /usr/bin/python3.12 1 \
+    && alternatives --install /usr/bin/python3 python3 /usr/bin/python3.12 1 \
+    && alternatives --install /usr/bin/pip pip /usr/bin/pip3.12 1 \
     && dnf clean all
 
 # Install Python dependencies
@@ -27,13 +27,8 @@ COPY requirements.txt .
 RUN python -m pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir -r requirements.txt
 
-# Install PyTorch with CUDA 12.6 support (sm_120 for RTX 5090 Blackwell)
-RUN pip install --no-cache-dir torch --index-url https://download.pytorch.org/whl/cu126 && \
-    pip install --no-cache-dir nvidia-cuda-cupti-cu12
-
-# Make libcupti.so.12 discoverable by the dynamic linker
-RUN echo "/usr/local/lib/python3.11/site-packages/nvidia/cuda_cupti/lib" > /etc/ld.so.conf.d/cupti.conf && \
-    ldconfig
+# Install PyTorch with CUDA 12.8 support (sm_120 for RTX 5090 Blackwell)
+RUN pip install --no-cache-dir torch==2.9.1 torchvision==0.24.1 torchaudio==2.9.1 --index-url https://download.pytorch.org/whl/cu128
 
 COPY . .
 
