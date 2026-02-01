@@ -261,14 +261,26 @@ def run_ml_model_training(self, session_id):
             verbose=True,
             allow_dangerous_code=True,
             agent_type='openai-tools',
+            max_iterations=30,
+            max_execution_time=300,
+            handle_parsing_errors=True,
             prefix=f"""You have access to a pandas DataFrame called `df` that is ALREADY LOADED in memory.
 NEVER try to read files from disk. NEVER use pd.read_csv(). The data is already in `df`.
 Dataset has {len(df)} rows and {len(df.columns)} columns: {list(df.columns)}
-Always use the `df` variable directly.""",
+Dtypes: {dict(df.dtypes.astype(str))}
+Always use the `df` variable directly.
+
+You can import and use: sklearn, numpy, pandas. Do all work in a single code block when possible.
+For the train/test split and model training, write the complete code in one execution.""",
         )
 
-        response = agent.invoke(ml_prompt)
-        output = response.get('output', str(response)) if isinstance(response, dict) else str(response)
+        try:
+            response = agent.invoke(ml_prompt)
+            output = response.get('output', str(response)) if isinstance(response, dict) else str(response)
+        except Exception as agent_err:
+            # Handle agent iteration limits or parse errors gracefully
+            output = f"The ML agent encountered an issue: {str(agent_err)}"
+            logger.warning(f"ML agent partial result: {agent_err}")
 
         # Save ML model record
         ml_model = MLModel.objects.create(
