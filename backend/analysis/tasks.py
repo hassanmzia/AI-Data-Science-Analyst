@@ -105,14 +105,18 @@ def run_visualization_analysis(self, session_id):
         viz_prompt = f"""Given this DataFrame with columns {list(df.columns)} and dtypes {dict(df.dtypes.astype(str))},
         the user wants: "{query}"
         Chart type preference: {chart_type}
+        First 3 rows sample: {df.head(3).to_dict()}
 
         Return a JSON object with:
         - chart_type: one of (scatter, bar, line, histogram, box, violin, heatmap, kde, pie, pair)
-        - x: column name for x-axis (if applicable)
-        - y: column name for y-axis (if applicable)
+        - x: column name for x-axis or category names (REQUIRED for most chart types)
+        - y: column name for y-axis or values (optional for pie/histogram)
         - color: column for color coding (optional)
         - title: chart title
         - description: brief description of what this shows
+        - agg: for pie/bar charts on categorical data, set to "count" if the user wants to see the distribution/count of categories. Leave null if data already has numeric values to plot.
+
+        IMPORTANT for pie charts: "x" should be the column containing category labels/names. If the user wants category distribution, set agg to "count".
 
         Only return the JSON, nothing else."""
 
@@ -133,10 +137,17 @@ def run_visualization_analysis(self, session_id):
         title = viz_config.get('title', session.query)
 
         fig = None
+        agg = viz_config.get('agg')
+
         if ct == 'scatter':
             fig = px.scatter(df, x=x_col, y=y_col, color=color_col, title=title)
         elif ct == 'bar':
-            fig = px.bar(df, x=x_col, y=y_col, color=color_col, title=title)
+            if agg == 'count' and x_col:
+                counts = df[x_col].value_counts().reset_index()
+                counts.columns = [x_col, 'count']
+                fig = px.bar(counts, x=x_col, y='count', color=color_col, title=title)
+            else:
+                fig = px.bar(df, x=x_col, y=y_col, color=color_col, title=title)
         elif ct == 'line':
             fig = px.line(df, x=x_col, y=y_col, color=color_col, title=title)
         elif ct == 'histogram':
@@ -153,7 +164,23 @@ def run_visualization_analysis(self, session_id):
             fig = px.histogram(df, x=x_col, color=color_col, marginal='rug',
                              histnorm='probability density', title=title)
         elif ct == 'pie':
-            fig = px.pie(df, names=x_col, values=y_col, title=title)
+            if x_col and (agg == 'count' or not y_col):
+                # Aggregate by counting categories
+                counts = df[x_col].value_counts().reset_index()
+                counts.columns = [x_col, 'count']
+                fig = px.pie(counts, names=x_col, values='count', title=title)
+            elif x_col and y_col:
+                fig = px.pie(df, names=x_col, values=y_col, title=title)
+            else:
+                # Fallback: find the first categorical column and count
+                cat_cols = df.select_dtypes(include=['object', 'category']).columns
+                if len(cat_cols) > 0:
+                    col = cat_cols[0]
+                    counts = df[col].value_counts().reset_index()
+                    counts.columns = [col, 'count']
+                    fig = px.pie(counts, names=col, values='count', title=title)
+                else:
+                    fig = px.pie(df, names=df.columns[0], title=title)
         elif ct == 'pair':
             numeric_cols = df.select_dtypes(include=[np.number]).columns[:6]
             fig = px.scatter_matrix(df[numeric_cols], title=title)
