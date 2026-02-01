@@ -283,11 +283,17 @@ export default function MLModelsPage() {
                 {m.framework && m.framework !== 'sklearn' ? ` | ${m.framework}` : ''}
                 {' | '}{new Date(m.created_at).toLocaleDateString()}
               </p>
-              {m.metrics?.accuracy && (
+              {m.metrics?.accuracy ? (
                 <p className="text-xs font-medium text-green-600 mt-1">
-                  Accuracy: {(m.metrics.accuracy * 100).toFixed(1)}%
+                  Accuracy: {(m.metrics.accuracy * (m.metrics.accuracy <= 1 ? 100 : 1)).toFixed(1)}%
                 </p>
-              )}
+              ) : m.metrics?.summary ? (
+                <p className="text-xs text-gray-500 mt-1 line-clamp-2">
+                  {typeof m.metrics.summary === 'string'
+                    ? m.metrics.summary.replace(/[*#\n]/g, ' ').substring(0, 80) + '...'
+                    : ''}
+                </p>
+              ) : null}
               {m.epochs && (
                 <p className="text-xs text-gray-400 mt-1">
                   {m.epochs} epochs
@@ -340,15 +346,12 @@ export default function MLModelsPage() {
                 )}
               </div>
               <div className="prose prose-sm max-w-none">
-                <ReactMarkdown>{selectedModel.description}</ReactMarkdown>
+                <ReactMarkdown>{getModelSummary(selectedModel)}</ReactMarkdown>
               </div>
               {selectedModel.metrics && Object.keys(selectedModel.metrics).length > 0 && (
-                <details className="mt-4">
-                  <summary className="cursor-pointer text-sm text-primary-600 font-medium">View Metrics</summary>
-                  <pre className="mt-2 bg-gray-50 p-3 rounded-lg text-xs overflow-auto">
-                    {JSON.stringify(selectedModel.metrics, null, 2)}
-                  </pre>
-                </details>
+                <div className="mt-4">
+                  {renderMetrics(selectedModel.metrics)}
+                </div>
               )}
             </div>
           ) : (
@@ -367,4 +370,65 @@ const DL_TYPES = new Set(['cnn', 'rnn', 'lstm', 'gru', 'transformer', 'autoencod
 
 function isDLModel(modelType: string): boolean {
   return DL_TYPES.has(modelType);
+}
+
+function getModelSummary(model: MLModel): string {
+  if (model.description) return model.description;
+  if (model.metrics?.summary && typeof model.metrics.summary === 'string') return model.metrics.summary;
+  return 'No description available.';
+}
+
+function renderMetrics(metrics: Record<string, any>) {
+  // If metrics only contains a 'summary' string, don't show a separate metrics section
+  // since it's already rendered as the description above
+  const keys = Object.keys(metrics).filter(k => k !== 'summary');
+
+  // Extract numeric metrics from the summary text or from top-level keys
+  const numericMetrics: { label: string; value: string }[] = [];
+  for (const key of keys) {
+    const val = metrics[key];
+    if (typeof val === 'number') {
+      const isPercent = key.toLowerCase().includes('accuracy') || key.toLowerCase().includes('precision')
+        || key.toLowerCase().includes('recall') || key.toLowerCase().includes('f1');
+      numericMetrics.push({
+        label: key.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()),
+        value: isPercent ? `${(val * (val <= 1 ? 100 : 1)).toFixed(2)}%` : val.toFixed(4),
+      });
+    } else if (typeof val === 'string' && val.length < 100) {
+      numericMetrics.push({
+        label: key.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()),
+        value: val,
+      });
+    }
+  }
+
+  if (numericMetrics.length === 0 && keys.length === 0) return null;
+
+  if (numericMetrics.length > 0) {
+    return (
+      <div>
+        <h4 className="text-sm font-semibold text-gray-700 mb-2">Metrics</h4>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          {numericMetrics.map(m => (
+            <div key={m.label} className="bg-green-50 border border-green-100 p-3 rounded-lg text-center">
+              <p className="text-xs text-gray-500">{m.label}</p>
+              <p className="text-lg font-bold text-green-700">{m.value}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  // Fallback: show non-summary keys as formatted JSON
+  const filtered = Object.fromEntries(Object.entries(metrics).filter(([k]) => k !== 'summary'));
+  if (Object.keys(filtered).length === 0) return null;
+  return (
+    <details>
+      <summary className="cursor-pointer text-sm text-primary-600 font-medium">View Raw Metrics</summary>
+      <pre className="mt-2 bg-gray-50 p-3 rounded-lg text-xs overflow-auto">
+        {JSON.stringify(filtered, null, 2)}
+      </pre>
+    </details>
+  );
 }
