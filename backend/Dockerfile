@@ -6,6 +6,7 @@ ENV PYTHONUNBUFFERED=1
 WORKDIR /app
 
 # Install Python 3.11 and system dependencies
+# Note: curl-minimal is pre-installed in CUDA image, skip curl to avoid conflicts
 RUN dnf install -y epel-release && \
     dnf install -y \
     python3.11 \
@@ -15,7 +16,6 @@ RUN dnf install -y epel-release && \
     gcc-c++ \
     make \
     libpq-devel \
-    curl \
     git \
     && alternatives --install /usr/bin/python python /usr/bin/python3.11 1 \
     && alternatives --install /usr/bin/python3 python3 /usr/bin/python3.11 1 \
