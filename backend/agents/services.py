@@ -27,7 +27,18 @@ class AgentOrchestrator:
         history = self._build_history(conversation)
 
         # Route to appropriate agent
-        if assistant_type == 'data_analyst' or assistant_type == 'general':
+        if assistant_type == 'general':
+            # General assistant: use dataset agent if dataset provided, otherwise plain LLM
+            did = dataset_id or conversation.dataset_id
+            if did:
+                return self._handle_data_analyst(conversation, message, history,
+                                                dataset_id, document_id)
+            elif document_id:
+                return self._handle_rag_assistant(conversation, message, history, document_id)
+            else:
+                return self._handle_general(conversation, message, history,
+                                           dataset_id, document_id)
+        elif assistant_type == 'data_analyst':
             return self._handle_data_analyst(conversation, message, history,
                                             dataset_id, document_id)
         elif assistant_type == 'data_scientist':
@@ -58,24 +69,35 @@ class AgentOrchestrator:
         """Handle data analyst queries - EDA, stats, general analysis."""
         from langchain_experimental.agents import create_pandas_dataframe_agent
 
-        context_parts = []
-        code_blocks = []
-        visualizations = []
+        did = dataset_id or conversation.dataset_id
+        if not did:
+            # If a document is provided, route to RAG
+            if document_id:
+                return self._handle_rag_assistant(conversation, message, history, document_id)
+            return {
+                'content': (
+                    "No dataset is currently attached to this conversation. "
+                    "Please select a dataset from the **Configuration** panel in the sidebar, "
+                    "then try your request again. I need a dataset to perform data analysis."
+                ),
+                'agent_name': 'Data Analyst Agent',
+                'tool_calls': [],
+                'code_blocks': [],
+                'visualizations': [],
+                'metadata': {},
+            }
 
-        # If we have a dataset, use DataFrame agent
-        if dataset_id or conversation.dataset_id:
-            did = dataset_id or conversation.dataset_id
-            from datasets.models import Dataset
-            from datasets.services import DatasetService
-            dataset = Dataset.objects.get(id=did)
-            df = DatasetService._read_dataframe(dataset)
+        from datasets.models import Dataset
+        from datasets.services import DatasetService
+        dataset = Dataset.objects.get(id=did)
+        df = DatasetService._read_dataframe(dataset)
 
-            agent = create_pandas_dataframe_agent(
-                self.llm, df,
-                verbose=True,
-                allow_dangerous_code=True,
-                agent_type='openai-tools',
-                prefix=f"""You are an expert data analyst assistant.
+        agent = create_pandas_dataframe_agent(
+            self.llm, df,
+            verbose=True,
+            allow_dangerous_code=True,
+            agent_type='openai-tools',
+            prefix=f"""You are an expert data analyst assistant.
 You are analyzing a dataset called "{dataset.name}" with {len(df)} rows and {len(df.columns)} columns.
 Columns: {list(df.columns)}
 
@@ -83,40 +105,50 @@ Previous conversation:
 {self._format_history(history)}
 
 Provide thorough, insightful analysis. Include statistics, patterns, and actionable insights.""",
-            )
+        )
 
-            response = agent.invoke(message)
-            output = response.get('output', str(response)) if isinstance(response, dict) else str(response)
+        response = agent.invoke(message)
+        output = response.get('output', str(response)) if isinstance(response, dict) else str(response)
 
-            return {
-                'content': output,
-                'agent_name': 'Data Analyst Agent',
-                'tool_calls': [],
-                'code_blocks': code_blocks,
-                'visualizations': visualizations,
-                'metadata': {'dataset': str(did)},
-            }
-
-        # Without dataset - use general LLM
-        return self._handle_general(conversation, message, history, dataset_id, document_id)
+        return {
+            'content': output,
+            'agent_name': 'Data Analyst Agent',
+            'tool_calls': [],
+            'code_blocks': [],
+            'visualizations': [],
+            'metadata': {'dataset': str(did)},
+        }
 
     def _handle_data_scientist(self, conversation, message, history, dataset_id=None):
         """Handle data science queries - ML, statistics, modeling."""
         from langchain_experimental.agents import create_pandas_dataframe_agent
 
-        if dataset_id or conversation.dataset_id:
-            did = dataset_id or conversation.dataset_id
-            from datasets.models import Dataset
-            from datasets.services import DatasetService
-            dataset = Dataset.objects.get(id=did)
-            df = DatasetService._read_dataframe(dataset)
+        did = dataset_id or conversation.dataset_id
+        if not did:
+            return {
+                'content': (
+                    "No dataset is currently attached to this conversation. "
+                    "Please select a dataset from the **Configuration** panel in the sidebar, "
+                    "then try your request again. I need a dataset to perform data science analysis."
+                ),
+                'agent_name': 'Data Scientist Agent',
+                'tool_calls': [],
+                'code_blocks': [],
+                'visualizations': [],
+                'metadata': {},
+            }
 
-            agent = create_pandas_dataframe_agent(
-                self.llm, df,
-                verbose=True,
-                allow_dangerous_code=True,
-                agent_type='openai-tools',
-                prefix=f"""You are an expert data scientist assistant.
+        from datasets.models import Dataset
+        from datasets.services import DatasetService
+        dataset = Dataset.objects.get(id=did)
+        df = DatasetService._read_dataframe(dataset)
+
+        agent = create_pandas_dataframe_agent(
+            self.llm, df,
+            verbose=True,
+            allow_dangerous_code=True,
+            agent_type='openai-tools',
+            prefix=f"""You are an expert data scientist assistant.
 Dataset: "{dataset.name}" ({len(df)} rows x {len(df.columns)} cols)
 Columns: {list(df.columns)}
 
@@ -125,21 +157,19 @@ statistical analysis, and provide data-driven insights.
 
 Previous conversation:
 {self._format_history(history)}""",
-            )
+        )
 
-            response = agent.invoke(message)
-            output = response.get('output', str(response)) if isinstance(response, dict) else str(response)
+        response = agent.invoke(message)
+        output = response.get('output', str(response)) if isinstance(response, dict) else str(response)
 
-            return {
-                'content': output,
-                'agent_name': 'Data Scientist Agent',
-                'tool_calls': [],
-                'code_blocks': [],
-                'visualizations': [],
-                'metadata': {'dataset': str(did)},
-            }
-
-        return self._handle_general(conversation, message, history)
+        return {
+            'content': output,
+            'agent_name': 'Data Scientist Agent',
+            'tool_calls': [],
+            'code_blocks': [],
+            'visualizations': [],
+            'metadata': {'dataset': str(did)},
+        }
 
     def _handle_sql_expert(self, conversation, message, history, dataset_id=None):
         """Handle SQL queries using natural language."""
@@ -147,48 +177,59 @@ Previous conversation:
         from langchain_community.agent_toolkits import SQLDatabaseToolkit
         from langchain.agents import create_sql_agent
 
-        if dataset_id or conversation.dataset_id:
-            did = dataset_id or conversation.dataset_id
-            from datasets.models import Dataset
-            from datasets.services import DatasetService
-            dataset = Dataset.objects.get(id=did)
-            df = DatasetService._read_dataframe(dataset)
-
-            import sqlite3
-            import tempfile
-            tmp = tempfile.NamedTemporaryFile(suffix='.db', delete=False)
-            conn = sqlite3.connect(tmp.name)
-            table_name = dataset.name.replace(' ', '_').replace('-', '_').lower()
-            df.to_sql(table_name, conn, if_exists='replace', index=False)
-            conn.close()
-
-            db = SQLDatabase.from_uri(f"sqlite:///{tmp.name}")
-            toolkit = SQLDatabaseToolkit(db=db, llm=self.llm)
-            agent = create_sql_agent(
-                llm=self.llm,
-                toolkit=toolkit,
-                verbose=True,
-                agent_type='openai-tools',
-                prefix=f"""You are an expert SQL analyst.
-You're querying a database with table "{table_name}".
-
-Previous conversation:
-{self._format_history(history)}""",
-            )
-
-            response = agent.invoke(message)
-            output = response.get('output', str(response)) if isinstance(response, dict) else str(response)
-
+        did = dataset_id or conversation.dataset_id
+        if not did:
             return {
-                'content': output,
+                'content': (
+                    "No dataset is currently attached to this conversation. "
+                    "Please select a dataset from the **Configuration** panel in the sidebar, "
+                    "then try your request again. I need a dataset to create a queryable SQL database."
+                ),
                 'agent_name': 'SQL Expert Agent',
                 'tool_calls': [],
                 'code_blocks': [],
                 'visualizations': [],
-                'metadata': {'dataset': str(did)},
+                'metadata': {},
             }
 
-        return self._handle_general(conversation, message, history)
+        from datasets.models import Dataset
+        from datasets.services import DatasetService
+        dataset = Dataset.objects.get(id=did)
+        df = DatasetService._read_dataframe(dataset)
+
+        import sqlite3
+        import tempfile
+        tmp = tempfile.NamedTemporaryFile(suffix='.db', delete=False)
+        conn = sqlite3.connect(tmp.name)
+        table_name = dataset.name.replace(' ', '_').replace('-', '_').lower()
+        df.to_sql(table_name, conn, if_exists='replace', index=False)
+        conn.close()
+
+        db = SQLDatabase.from_uri(f"sqlite:///{tmp.name}")
+        toolkit = SQLDatabaseToolkit(db=db, llm=self.llm)
+        agent = create_sql_agent(
+            llm=self.llm,
+            toolkit=toolkit,
+            verbose=True,
+            agent_type='openai-tools',
+            prefix=f"""You are an expert SQL analyst.
+You're querying a database with table "{table_name}".
+
+Previous conversation:
+{self._format_history(history)}""",
+        )
+
+        response = agent.invoke(message)
+        output = response.get('output', str(response)) if isinstance(response, dict) else str(response)
+
+        return {
+            'content': output,
+            'agent_name': 'SQL Expert Agent',
+            'tool_calls': [],
+            'code_blocks': [],
+            'visualizations': [],
+            'metadata': {'dataset': str(did)},
+        }
 
     def _handle_ml_engineer(self, conversation, message, history, dataset_id=None):
         """Handle ML engineering tasks."""
