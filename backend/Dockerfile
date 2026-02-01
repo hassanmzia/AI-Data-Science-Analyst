@@ -31,14 +31,8 @@ RUN python -m pip install --no-cache-dir --upgrade pip && \
 RUN pip install --no-cache-dir torch==2.5.1 --index-url https://download.pytorch.org/whl/cu124 && \
     pip install --no-cache-dir nvidia-cuda-cupti-cu12
 
-# Symlink libcupti.so.12 to a standard lib path so the dynamic linker finds it
-RUN CUPTI_PATH=$(find / -name "libcupti.so.12" 2>/dev/null | head -1) && \
-    if [ -n "$CUPTI_PATH" ]; then \
-        ln -sf "$CUPTI_PATH" /usr/local/lib64/libcupti.so.12 && \
-        echo "Linked $CUPTI_PATH -> /usr/local/lib64/libcupti.so.12"; \
-    else \
-        echo "WARNING: libcupti.so.12 not found"; \
-    fi && \
+# Make libcupti.so.12 discoverable by the dynamic linker
+RUN echo "/usr/local/lib/python3.11/site-packages/nvidia/cuda_cupti/lib" > /etc/ld.so.conf.d/cupti.conf && \
     ldconfig
 
 COPY . .
