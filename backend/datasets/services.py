@@ -331,6 +331,28 @@ class DatasetService:
 
     @classmethod
     def get_column_info(cls, dataset):
+        """Get detailed column information for a dataset."""
+        df = cls._read_dataframe(dataset)
+        info = {}
+        for col in df.columns:
+            col_data = {
+                'dtype': str(df[col].dtype),
+                'non_null': int(df[col].count()),
+                'null_count': int(df[col].isnull().sum()),
+                'unique_count': int(df[col].nunique()),
+            }
+            if df[col].dtype in ['float64', 'int64', 'float32', 'int32']:
+                col_data['mean'] = round(float(df[col].mean()), 4) if not df[col].isnull().all() else None
+                col_data['min'] = float(df[col].min()) if not df[col].isnull().all() else None
+                col_data['max'] = float(df[col].max()) if not df[col].isnull().all() else None
+            else:
+                top_values = df[col].value_counts().head(5).to_dict()
+                col_data['top_values'] = {str(k): int(v) for k, v in top_values.items()}
+            info[col] = col_data
+        return info
+
+    @classmethod
+    def get_column_info(cls, dataset):
         """Get detailed column information."""
         df = cls._read_dataframe(dataset)
         info = {}

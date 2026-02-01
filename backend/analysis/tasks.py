@@ -261,14 +261,26 @@ def run_ml_model_training(self, session_id):
             verbose=True,
             allow_dangerous_code=True,
             agent_type='openai-tools',
+            max_iterations=30,
+            max_execution_time=300,
+            handle_parsing_errors=True,
             prefix=f"""You have access to a pandas DataFrame called `df` that is ALREADY LOADED in memory.
 NEVER try to read files from disk. NEVER use pd.read_csv(). The data is already in `df`.
 Dataset has {len(df)} rows and {len(df.columns)} columns: {list(df.columns)}
-Always use the `df` variable directly.""",
+Dtypes: {dict(df.dtypes.astype(str))}
+Always use the `df` variable directly.
+
+You can import and use: sklearn, numpy, pandas. Do all work in a single code block when possible.
+For the train/test split and model training, write the complete code in one execution.""",
         )
 
-        response = agent.invoke(ml_prompt)
-        output = response.get('output', str(response)) if isinstance(response, dict) else str(response)
+        try:
+            response = agent.invoke(ml_prompt)
+            output = response.get('output', str(response)) if isinstance(response, dict) else str(response)
+        except Exception as agent_err:
+            # Handle agent iteration limits or parse errors gracefully
+            output = f"The ML agent encountered an issue: {str(agent_err)}"
+            logger.warning(f"ML agent partial result: {agent_err}")
 
         # Save ML model record
         ml_model = MLModel.objects.create(
@@ -296,6 +308,155 @@ Always use the `df` variable directly.""",
 
     except Exception as e:
         logger.error(f"ML training error: {traceback.format_exc()}")
+        session.status = 'failed'
+        session.error_message = str(e)
+        session.execution_time = time.time() - start_time
+        session.save()
+        raise
+
+
+@shared_task(bind=True, queue='ml_tasks', max_retries=1)
+def run_dl_model_training(self, session_id):
+    """Train deep learning model using LangChain agent with PyTorch/TensorFlow."""
+    from analysis.models import AnalysisSession, MLModel
+    from langchain_experimental.agents import create_pandas_dataframe_agent
+
+    session = AnalysisSession.objects.get(id=session_id)
+    session.status = 'running'
+    session.save()
+    start_time = time.time()
+
+    try:
+        df = _load_dataset_df(session.dataset)
+        llm = _get_llm()
+
+        model_type = session.parameters.get('model_type', 'auto')
+        target_column = session.parameters.get('target_column', '')
+        framework = session.parameters.get('framework', 'pytorch')
+        epochs = session.parameters.get('epochs', 50)
+        batch_size = session.parameters.get('batch_size', 32)
+        learning_rate = session.parameters.get('learning_rate', 0.001)
+        task_type = session.parameters.get('task_type', 'auto')
+
+        # Build framework-specific instructions
+        if framework == 'tensorflow':
+            framework_instructions = """
+Use TensorFlow/Keras for building the deep learning model.
+Import: import tensorflow as tf, from tensorflow import keras, from tensorflow.keras import layers
+Build the model using keras.Sequential or Functional API.
+Compile with appropriate optimizer and loss function.
+Use model.fit() for training with the specified epochs and batch_size.
+After training, evaluate on the test set and print metrics."""
+        else:
+            framework_instructions = """
+Use PyTorch for building the deep learning model.
+Import: import torch, import torch.nn as nn, import torch.optim as optim, from torch.utils.data import DataLoader, TensorDataset
+Define the model as a class inheriting nn.Module.
+Create a training loop with the specified epochs and batch_size.
+After training, evaluate on the test set and print metrics."""
+
+        # Model-specific architecture guidance
+        model_guidance = {
+            'cnn': 'Build a 1D CNN (Conv1d) for tabular data. Use Conv1d layers followed by MaxPool1d, flatten, and Dense layers.',
+            'rnn': 'Build an RNN model. Reshape input to (batch, sequence_length, features). Use RNN/SimpleRNN layers.',
+            'lstm': 'Build an LSTM model. Reshape input to (batch, sequence_length, features). Use LSTM layers with dropout.',
+            'gru': 'Build a GRU model. Reshape input to (batch, sequence_length, features). Use GRU layers with dropout.',
+            'transformer': 'Build a simple Transformer encoder for tabular data. Use multi-head attention and feedforward layers.',
+            'autoencoder': 'Build an Autoencoder with encoder and decoder. Train to reconstruct input. Report reconstruction loss.',
+            'gan': 'Build a simple GAN with generator and discriminator networks. Train adversarially.',
+            'mlp': 'Build a Multi-Layer Perceptron with multiple hidden layers, ReLU activations, and dropout.',
+            'resnet': 'Build a ResNet-style model with residual/skip connections for tabular data.',
+        }.get(model_type, 'Choose the most appropriate deep learning architecture for this data and task.')
+
+        dl_prompt = f"""{session.query}
+
+        Dataset has columns: {list(df.columns)}
+        Target column: {target_column if target_column else 'determine the best target'}
+        Model type: {model_type}
+        Task type: {task_type}
+        Framework: {framework}
+        Epochs: {epochs}
+        Batch size: {batch_size}
+        Learning rate: {learning_rate}
+
+        Architecture guidance: {model_guidance}
+
+        {framework_instructions}
+
+        Steps:
+        1. Clean the data (handle missing values, encode categoricals with LabelEncoder or OneHotEncoder)
+        2. Normalize/standardize numerical features
+        3. Prepare features (X) and target (y)
+        4. Split into train/test (80/20)
+        5. Build the {model_type} deep learning model
+        6. Train for {epochs} epochs with batch_size={batch_size} and learning_rate={learning_rate}
+        7. Evaluate with appropriate metrics (accuracy for classification, MSE/MAE for regression)
+        8. Print training history (loss per epoch) and final test metrics
+        9. Return a detailed summary including model architecture, training loss curve info, and test metrics.
+
+        IMPORTANT: Do all steps in as few code executions as possible.
+        Print the final results clearly."""
+
+        agent = create_pandas_dataframe_agent(
+            llm, df,
+            verbose=True,
+            allow_dangerous_code=True,
+            agent_type='openai-tools',
+            max_iterations=40,
+            max_execution_time=600,
+            handle_parsing_errors=True,
+            prefix=f"""You have access to a pandas DataFrame called `df` that is ALREADY LOADED in memory.
+NEVER try to read files from disk. NEVER use pd.read_csv(). The data is already in `df`.
+Dataset has {len(df)} rows and {len(df.columns)} columns: {list(df.columns)}
+Dtypes: {dict(df.dtypes.astype(str))}
+Always use the `df` variable directly.
+
+You can import and use: torch, tensorflow, keras, sklearn, numpy, pandas.
+Do all work in a single code block when possible.
+For deep learning training, write the complete code in one execution.""",
+        )
+
+        try:
+            response = agent.invoke(dl_prompt)
+            output = response.get('output', str(response)) if isinstance(response, dict) else str(response)
+        except Exception as agent_err:
+            output = f"The DL agent encountered an issue: {str(agent_err)}"
+            logger.warning(f"DL agent partial result: {agent_err}")
+
+        # Determine actual framework used
+        actual_framework = framework if framework != 'auto' else 'pytorch'
+
+        # Save ML model record
+        ml_model = MLModel.objects.create(
+            name=session.name,
+            model_type=model_type if model_type != 'auto' else 'mlp',
+            task_type=task_type if task_type != 'auto' else 'classification',
+            framework=actual_framework,
+            description=output,
+            dataset=session.dataset,
+            analysis=session,
+            target_column=target_column,
+            feature_columns=list(df.columns),
+            metrics={'summary': output},
+            epochs=epochs,
+            batch_size=batch_size,
+            learning_rate=learning_rate,
+        )
+
+        session.result = {
+            'model_id': str(ml_model.id),
+            'summary': output,
+            'model_type': model_type,
+            'framework': actual_framework,
+        }
+        session.status = 'completed'
+        session.execution_time = time.time() - start_time
+        session.save()
+
+        return session.result
+
+    except Exception as e:
+        logger.error(f"DL training error: {traceback.format_exc()}")
         session.status = 'failed'
         session.error_message = str(e)
         session.execution_time = time.time() - start_time

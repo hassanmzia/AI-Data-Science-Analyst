@@ -45,7 +45,7 @@ export interface Document {
 export interface AnalysisSession {
   id: string;
   name: string;
-  analysis_type: 'eda' | 'visualization' | 'hypothesis' | 'ml_model' | 'sql_query' | 'general';
+  analysis_type: 'eda' | 'visualization' | 'hypothesis' | 'ml_model' | 'dl_model' | 'sql_query' | 'general';
   status: 'pending' | 'running' | 'completed' | 'failed';
   dataset: string | null;
   query: string;
@@ -72,10 +72,14 @@ export interface MLModel {
   name: string;
   model_type: string;
   task_type: string;
+  framework: string;
   description: string;
   target_column: string;
   feature_columns: string[];
   metrics: Record<string, any>;
+  epochs: number | null;
+  batch_size: number | null;
+  learning_rate: number | null;
   created_at: string;
 }
 

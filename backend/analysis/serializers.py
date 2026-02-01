@@ -48,6 +48,30 @@ class RunMLModelSerializer(serializers.Serializer):
     name = serializers.CharField(max_length=255, required=False, default='ML Model')
 
 
+class RunDLModelSerializer(serializers.Serializer):
+    dataset_id = serializers.UUIDField()
+    query = serializers.CharField(help_text='Natural language DL request')
+    model_type = serializers.ChoiceField(
+        choices=['auto', 'cnn', 'rnn', 'lstm', 'gru', 'transformer',
+                 'autoencoder', 'gan', 'mlp', 'resnet'],
+        default='auto',
+    )
+    framework = serializers.ChoiceField(
+        choices=['auto', 'pytorch', 'tensorflow'],
+        default='pytorch',
+    )
+    target_column = serializers.CharField(required=False, default='')
+    epochs = serializers.IntegerField(required=False, default=50, min_value=1, max_value=1000)
+    batch_size = serializers.IntegerField(required=False, default=32, min_value=1, max_value=4096)
+    learning_rate = serializers.FloatField(required=False, default=0.001)
+    task_type = serializers.ChoiceField(
+        choices=['auto', 'classification', 'regression', 'sequence_prediction',
+                 'anomaly_detection', 'generative'],
+        default='auto',
+    )
+    name = serializers.CharField(max_length=255, required=False, default='DL Model')
+
+
 class RunHypothesisTestSerializer(serializers.Serializer):
     dataset_id = serializers.UUIDField()
     query = serializers.CharField(help_text='Natural language hypothesis test request')
@@ -83,8 +107,8 @@ class MLModelSerializer(serializers.ModelSerializer):
 class MLModelListSerializer(serializers.ModelSerializer):
     class Meta:
         model = MLModel
-        fields = ['id', 'name', 'model_type', 'task_type', 'metrics',
-                 'target_column', 'created_at']
+        fields = ['id', 'name', 'model_type', 'task_type', 'framework', 'metrics',
+                 'target_column', 'epochs', 'created_at']
 
 
 class HypothesisTestSerializer(serializers.ModelSerializer):

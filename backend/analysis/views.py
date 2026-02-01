@@ -7,13 +7,14 @@ from .models import AnalysisSession, Visualization, MLModel, HypothesisTest
 from .serializers import (
     AnalysisSessionSerializer, AnalysisSessionListSerializer,
     RunEDASerializer, RunVisualizationSerializer, RunMLModelSerializer,
-    RunHypothesisTestSerializer, RunSQLQuerySerializer,
+    RunDLModelSerializer, RunHypothesisTestSerializer, RunSQLQuerySerializer,
     VisualizationSerializer, MLModelSerializer, MLModelListSerializer,
     HypothesisTestSerializer,
 )
 from .tasks import (
     run_eda_analysis, run_visualization_analysis,
-    run_ml_model_training, run_hypothesis_test, run_sql_query,
+    run_ml_model_training, run_dl_model_training,
+    run_hypothesis_test, run_sql_query,
 )
 
 logger = logging.getLogger(__name__)
@@ -95,6 +96,37 @@ class AnalysisSessionViewSet(viewsets.ModelViewSet):
         )
 
         task = run_ml_model_training.delay(str(session.id))
+        session.celery_task_id = task.id
+        session.status = 'running'
+        session.save()
+
+        return Response(AnalysisSessionSerializer(session).data, status=status.HTTP_202_ACCEPTED)
+
+    @action(detail=False, methods=['post'], serializer_class=RunDLModelSerializer)
+    def run_dl(self, request):
+        """Train deep learning model using natural language."""
+        serializer = RunDLModelSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        session = AnalysisSession.objects.create(
+            name=serializer.validated_data.get('name', 'DL Model'),
+            analysis_type='dl_model',
+            dataset_id=serializer.validated_data['dataset_id'],
+            query=serializer.validated_data['query'],
+            parameters={
+                'model_type': serializer.validated_data.get('model_type', 'auto'),
+                'framework': serializer.validated_data.get('framework', 'pytorch'),
+                'target_column': serializer.validated_data.get('target_column', ''),
+                'epochs': serializer.validated_data.get('epochs', 50),
+                'batch_size': serializer.validated_data.get('batch_size', 32),
+                'learning_rate': serializer.validated_data.get('learning_rate', 0.001),
+                'task_type': serializer.validated_data.get('task_type', 'auto'),
+            },
+            status='pending',
+            owner=request.user if request.user.is_authenticated else None,
+        )
+
+        task = run_dl_model_training.delay(str(session.id))
         session.celery_task_id = task.id
         session.status = 'running'
         session.save()
