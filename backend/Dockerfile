@@ -27,8 +27,9 @@ COPY requirements.txt .
 RUN python -m pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir -r requirements.txt
 
-# Install PyTorch with CUDA 12.4 support (bundled CUDA libs including cupti)
-RUN pip install --no-cache-dir torch==2.5.1 --index-url https://download.pytorch.org/whl/cu124
+# Install PyTorch with CUDA 12.4 support and CUPTI library
+RUN pip install --no-cache-dir torch==2.5.1 --index-url https://download.pytorch.org/whl/cu124 && \
+    pip install --no-cache-dir nvidia-cuda-cupti-cu12
 
 COPY . .
 
