@@ -7,7 +7,6 @@ WORKDIR /app
 
 # Install Python 3.11 and system dependencies
 # Note: curl-minimal is pre-installed in CUDA image, skip curl to avoid conflicts
-# Install cuda-cupti for libcupti.so.12 needed by PyTorch GPU
 RUN dnf install -y epel-release && \
     dnf install -y \
     python3.11 \
@@ -18,18 +17,18 @@ RUN dnf install -y epel-release && \
     make \
     libpq-devel \
     git \
-    cuda-cupti-12-4 \
     && alternatives --install /usr/bin/python python /usr/bin/python3.11 1 \
     && alternatives --install /usr/bin/python3 python3 /usr/bin/python3.11 1 \
     && alternatives --install /usr/bin/pip pip /usr/bin/pip3.11 1 \
     && dnf clean all
 
-ENV LD_LIBRARY_PATH="/usr/local/cuda-12.4/extras/CUPTI/lib64:${LD_LIBRARY_PATH}"
-
 # Install Python dependencies
 COPY requirements.txt .
 RUN python -m pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir -r requirements.txt
+
+# Install PyTorch with CUDA 12.4 support (bundled CUDA libs including cupti)
+RUN pip install --no-cache-dir torch==2.5.1 --index-url https://download.pytorch.org/whl/cu124
 
 COPY . .
 
