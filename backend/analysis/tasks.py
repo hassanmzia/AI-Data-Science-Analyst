@@ -271,15 +271,28 @@ def run_ml_model_training(self, session_id):
         model_type = session.parameters.get('model_type', 'auto')
         target_column = session.parameters.get('target_column', '')
 
+        # Detect GPU for XGBoost
+        gpu_available = False
+        try:
+            import torch
+            gpu_available = torch.cuda.is_available()
+        except Exception:
+            pass
+
+        xgb_gpu_hint = ""
+        if gpu_available and model_type in ('auto', 'xgboost'):
+            xgb_gpu_hint = "\nFor XGBoost: use tree_method='gpu_hist' and device='cuda' to train on GPU."
+
         # Use agent to train model
         ml_prompt = f"""{session.query}
 
         Dataset has columns: {list(df.columns)}
         Target column: {target_column if target_column else 'determine the best target'}
         Model type preference: {model_type}
+        {xgb_gpu_hint}
 
         Steps:
-        1. Clean the data (handle missing values)
+        1. Clean the data (handle missing values, encode categoricals with LabelEncoder)
         2. Prepare features and target
         3. Split into train/test (80/20)
         4. Train the model
