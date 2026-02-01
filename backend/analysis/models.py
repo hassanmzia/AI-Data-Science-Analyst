@@ -12,6 +12,7 @@ class AnalysisSession(models.Model):
         ('visualization', 'Data Visualization'),
         ('hypothesis', 'Hypothesis Testing'),
         ('ml_model', 'Machine Learning Model'),
+        ('dl_model', 'Deep Learning Model'),
         ('sql_query', 'SQL Query'),
         ('general', 'General Analysis'),
     ]
@@ -109,6 +110,7 @@ class MLModel(models.Model):
     """Trained ML model records."""
 
     MODEL_TYPES = [
+        # Traditional ML
         ('logistic_regression', 'Logistic Regression'),
         ('random_forest', 'Random Forest'),
         ('xgboost', 'XGBoost'),
@@ -118,6 +120,16 @@ class MLModel(models.Model):
         ('knn', 'K-Nearest Neighbors'),
         ('gradient_boosting', 'Gradient Boosting'),
         ('linear_regression', 'Linear Regression'),
+        # Deep Learning
+        ('cnn', 'Convolutional Neural Network'),
+        ('rnn', 'Recurrent Neural Network'),
+        ('lstm', 'Long Short-Term Memory'),
+        ('gru', 'Gated Recurrent Unit'),
+        ('transformer', 'Transformer'),
+        ('autoencoder', 'Autoencoder'),
+        ('gan', 'Generative Adversarial Network'),
+        ('mlp', 'Multi-Layer Perceptron'),
+        ('resnet', 'ResNet'),
         ('custom', 'Custom Model'),
     ]
 
@@ -125,12 +137,25 @@ class MLModel(models.Model):
         ('classification', 'Classification'),
         ('regression', 'Regression'),
         ('clustering', 'Clustering'),
+        ('image_classification', 'Image Classification'),
+        ('text_classification', 'Text Classification'),
+        ('sequence_prediction', 'Sequence Prediction'),
+        ('anomaly_detection', 'Anomaly Detection'),
+        ('generative', 'Generative'),
+    ]
+
+    FRAMEWORK_CHOICES = [
+        ('sklearn', 'Scikit-learn'),
+        ('pytorch', 'PyTorch'),
+        ('tensorflow', 'TensorFlow'),
+        ('auto', 'Auto Select'),
     ]
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     name = models.CharField(max_length=255)
     model_type = models.CharField(max_length=30, choices=MODEL_TYPES)
-    task_type = models.CharField(max_length=20, choices=TASK_TYPES, default='classification')
+    task_type = models.CharField(max_length=30, choices=TASK_TYPES, default='classification')
+    framework = models.CharField(max_length=20, choices=FRAMEWORK_CHOICES, default='sklearn')
     description = models.TextField(blank=True, default='')
 
     dataset = models.ForeignKey(Dataset, on_delete=models.SET_NULL, null=True, blank=True,
@@ -142,6 +167,11 @@ class MLModel(models.Model):
     target_column = models.CharField(max_length=255, blank=True, default='')
     feature_columns = models.JSONField(default=list, blank=True)
     hyperparameters = models.JSONField(default=dict, blank=True)
+
+    # Deep learning specific
+    epochs = models.IntegerField(null=True, blank=True)
+    batch_size = models.IntegerField(null=True, blank=True)
+    learning_rate = models.FloatField(null=True, blank=True)
 
     # Results
     metrics = models.JSONField(default=dict, blank=True,

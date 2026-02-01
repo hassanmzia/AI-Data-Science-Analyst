@@ -69,6 +69,11 @@ export const analysisApi = {
     api.post('/api/analysis/sessions/run_visualization/', data),
   runMl: (data: { dataset_id: string; query: string; model_type?: string; target_column?: string }) =>
     api.post('/api/analysis/sessions/run_ml/', data),
+  runDl: (data: {
+    dataset_id: string; query: string; model_type?: string; framework?: string;
+    target_column?: string; epochs?: number; batch_size?: number;
+    learning_rate?: number; task_type?: string;
+  }) => api.post('/api/analysis/sessions/run_dl/', data),
   runHypothesisTest: (data: { dataset_id: string; query: string; test_type?: string }) =>
     api.post('/api/analysis/sessions/run_hypothesis_test/', data),
   runSql: (data: { dataset_id?: string; connection_id?: string; query: string }) =>
