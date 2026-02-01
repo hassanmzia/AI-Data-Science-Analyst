@@ -350,9 +350,8 @@ For the train/test split and model training, write the complete code in one exec
 
 @shared_task(bind=True, queue='ml_tasks', max_retries=1)
 def run_dl_model_training(self, session_id):
-    """Train deep learning model using LangChain agent with PyTorch/TensorFlow."""
+    """Train deep learning model by generating code via LLM and executing it directly."""
     from analysis.models import AnalysisSession, MLModel
-    from langchain_experimental.agents import create_pandas_dataframe_agent
 
     session = AnalysisSession.objects.get(id=session_id)
     session.status = 'running'
@@ -385,107 +384,154 @@ def run_dl_model_training(self, session_id):
 
         # Build framework-specific instructions
         if framework == 'tensorflow':
-            gpu_instruction = """
-IMPORTANT: GPU is available. TensorFlow will automatically use it.
-Print tf.config.list_physical_devices('GPU') to confirm GPU usage.""" if gpu_available else ""
+            gpu_line = "# GPU available — TensorFlow will use it automatically" if gpu_available else ""
             framework_instructions = f"""
-Use TensorFlow/Keras for building the deep learning model.
-Import: import tensorflow as tf, from tensorflow import keras, from tensorflow.keras import layers
-Build the model using keras.Sequential or Functional API.
-Compile with appropriate optimizer and loss function.
-Use model.fit() for training with the specified epochs and batch_size.
-After training, evaluate on the test set and print metrics.{gpu_instruction}"""
+Use TensorFlow/Keras. Example structure:
+import tensorflow as tf
+from tensorflow import keras
+from tensorflow.keras import layers
+{gpu_line}
+model = keras.Sequential([...])
+model.compile(optimizer=keras.optimizers.Adam(learning_rate={learning_rate}), loss=..., metrics=['accuracy'])
+history = model.fit(X_train, y_train, epochs={epochs}, batch_size={batch_size}, validation_split=0.2, verbose=0)
+loss, acc = model.evaluate(X_test, y_test, verbose=0)
+"""
         else:
-            gpu_instruction = f"""
-IMPORTANT: GPU is available ({gpu_info}). You MUST use it.
-Set device = torch.device('cuda') and move model and tensors to device with .to(device).
-Print the device being used at the start.""" if gpu_available else """
-Use device = torch.device('cpu')."""
+            device_line = "device = torch.device('cuda')" if gpu_available else "device = torch.device('cpu')"
             framework_instructions = f"""
-Use PyTorch for building the deep learning model.
-Import: import torch, import torch.nn as nn, import torch.optim as optim, from torch.utils.data import DataLoader, TensorDataset
-Define the model as a class inheriting nn.Module.
-{gpu_instruction}
-Create a training loop with the specified epochs and batch_size.
-After training, evaluate on the test set and print metrics."""
+Use PyTorch. Example structure:
+import torch
+import torch.nn as nn
+import torch.optim as optim
+from torch.utils.data import DataLoader, TensorDataset
+{device_line}
+# Define model class, move to device, create DataLoader, training loop, evaluate.
+"""
 
-        # Model-specific architecture guidance
         model_guidance = {
-            'cnn': 'Build a 1D CNN (Conv1d) for tabular data. Use Conv1d layers followed by MaxPool1d, flatten, and Dense layers.',
-            'rnn': 'Build an RNN model. Reshape input to (batch, sequence_length, features). Use RNN/SimpleRNN layers.',
-            'lstm': 'Build an LSTM model. Reshape input to (batch, sequence_length, features). Use LSTM layers with dropout.',
-            'gru': 'Build a GRU model. Reshape input to (batch, sequence_length, features). Use GRU layers with dropout.',
-            'transformer': 'Build a simple Transformer encoder for tabular data. Use multi-head attention and feedforward layers.',
-            'autoencoder': 'Build an Autoencoder with encoder and decoder. Train to reconstruct input. Report reconstruction loss.',
-            'gan': 'Build a simple GAN with generator and discriminator networks. Train adversarially.',
-            'mlp': 'Build a Multi-Layer Perceptron with multiple hidden layers, ReLU activations, and dropout.',
-            'resnet': 'Build a ResNet-style model with residual/skip connections for tabular data.',
-        }.get(model_type, 'Choose the most appropriate deep learning architecture for this data and task.')
+            'cnn': 'Build a 1D CNN (Conv1d) for tabular data. Use Conv1d layers followed by MaxPool1d, flatten, and Linear layers.',
+            'rnn': 'Build an RNN model. Reshape input to (batch, 1, features). Use nn.RNN layers.',
+            'lstm': 'Build an LSTM model. Reshape input to (batch, 1, features). Use nn.LSTM layers with dropout.',
+            'gru': 'Build a GRU model. Reshape input to (batch, 1, features). Use nn.GRU layers with dropout.',
+            'transformer': 'Build a simple Transformer encoder. Use nn.TransformerEncoderLayer and nn.TransformerEncoder.',
+            'autoencoder': 'Build an Autoencoder with encoder and decoder. Train to reconstruct input.',
+            'gan': 'Build a simple GAN with generator and discriminator.',
+            'mlp': 'Build a Multi-Layer Perceptron with multiple hidden layers, ReLU, and dropout.',
+            'resnet': 'Build a ResNet-style model with residual/skip connections.',
+        }.get(model_type, 'Choose the best deep learning architecture for this data.')
 
-        dl_prompt = f"""{session.query}
+        head_str = df.head(3).to_string()
+        dtypes_str = str(dict(df.dtypes.astype(str)))
 
-        Dataset has columns: {list(df.columns)}
-        Target column: {target_column if target_column else 'determine the best target'}
-        Model type: {model_type}
-        Task type: {task_type}
-        Framework: {framework}
-        Epochs: {epochs}
-        Batch size: {batch_size}
-        Learning rate: {learning_rate}
+        # Step 1: Ask LLM to generate COMPLETE Python code
+        code_prompt = f"""Generate a COMPLETE, SELF-CONTAINED Python script for deep learning training.
 
-        Architecture guidance: {model_guidance}
+The variable `df` (a pandas DataFrame) is already loaded. Here is the data:
+{head_str}
+Dtypes: {dtypes_str}
+Columns: {list(df.columns)}
 
-        {framework_instructions}
+Task: {session.query}
+Target column: {target_column if target_column else 'determine the best target'}
+Model type: {model_type}
+Task type: {task_type}
+Epochs: {epochs}
+Batch size: {batch_size}
+Learning rate: {learning_rate}
 
-        Steps:
-        1. Clean the data (handle missing values, encode categoricals with LabelEncoder or OneHotEncoder)
-        2. Normalize/standardize numerical features
-        3. Prepare features (X) and target (y)
-        4. Split into train/test (80/20)
-        5. Build the {model_type} deep learning model
-        6. Train for {epochs} epochs with batch_size={batch_size} and learning_rate={learning_rate}
-        7. Evaluate with appropriate metrics (accuracy for classification, MSE/MAE for regression)
-        8. Print training history (loss per epoch) and final test metrics
-        9. Return a detailed summary including model architecture, training loss curve info, and test metrics.
+Architecture: {model_guidance}
+{framework_instructions}
 
-        IMPORTANT: You MUST write ALL code in a SINGLE code block. Do NOT split into multiple executions.
-        Class definitions, imports, training loop, and evaluation MUST all be in ONE block.
-        If you split the code, class and variable definitions will be lost between executions.
-        Do NOT use matplotlib.pyplot.show() — just print the loss values instead.
-        Print the final results clearly."""
+Requirements:
+1. Clean data (handle missing values, encode categoricals, drop non-numeric/ID columns)
+2. Normalize/standardize features
+3. Split into train/test (80/20)
+4. Define and build the {model_type} model
+5. Train for {epochs} epochs
+6. Evaluate on test set
+7. Store results in a variable called `results` — a dict with keys:
+   - 'accuracy' or 'mse' (float) depending on task
+   - 'train_losses' (list of floats per epoch)
+   - 'summary' (str with human-readable description of results)
+   And optionally: 'precision', 'recall', 'f1_score', 'test_loss'
 
-        agent = create_pandas_dataframe_agent(
-            llm, df,
-            verbose=True,
-            allow_dangerous_code=True,
-            agent_type='openai-tools',
-            max_iterations=40,
-            max_execution_time=600,
-            handle_parsing_errors=True,
-            prefix=f"""You have access to a pandas DataFrame called `df` that is ALREADY LOADED in memory.
-NEVER try to read files from disk. NEVER use pd.read_csv(). The data is already in `df`.
-Dataset has {len(df)} rows and {len(df.columns)} columns: {list(df.columns)}
-Dtypes: {dict(df.dtypes.astype(str))}
-Always use the `df` variable directly.
+CRITICAL RULES:
+- `df` is already available. Do NOT import pandas or read any files.
+- Do NOT use plt.show() or any GUI calls.
+- Do NOT use print() — just compute and store in `results`.
+- ALL code must be in a single script — all imports, class definitions, training, evaluation.
+- The script must define a `results` dict at the end.
 
-CRITICAL: You MUST write ALL code (imports, class definitions, training, evaluation) in a SINGLE python_repl_ast call.
-If you split code across multiple calls, class definitions and variables WILL BE LOST.
-NEVER call plt.show(). Just print metrics.
-You can import and use: torch, tensorflow, keras, sklearn, numpy, pandas.""",
-        )
+Return ONLY the Python code, no markdown fences, no explanation."""
+
+        from langchain_openai import ChatOpenAI
+        code_response = llm.invoke(code_prompt)
+        code = code_response.content if hasattr(code_response, 'content') else str(code_response)
+
+        # Clean up: strip markdown fences if present
+        code = code.strip()
+        if code.startswith('```python'):
+            code = code[len('```python'):].strip()
+        if code.startswith('```'):
+            code = code[3:].strip()
+        if code.endswith('```'):
+            code = code[:-3].strip()
+
+        logger.info(f"DL code generated ({len(code)} chars), executing...")
+
+        # Step 2: Execute the code directly in a single exec() call
+        exec_globals = {
+            'df': df.copy(),
+            'pd': pd,
+            'np': np,
+            '__builtins__': __builtins__,
+        }
+        exec_locals = {}
 
         try:
-            response = agent.invoke(dl_prompt)
-            output = response.get('output', str(response)) if isinstance(response, dict) else str(response)
-        except Exception as agent_err:
-            output = f"The DL agent encountered an issue: {str(agent_err)}"
-            logger.warning(f"DL agent partial result: {agent_err}")
+            exec(code, exec_globals, exec_locals)
+        except Exception as exec_err:
+            logger.warning(f"DL code execution error: {exec_err}")
+            # Try to salvage partial results
+            exec_locals['results'] = {
+                'summary': f"Code execution error: {str(exec_err)}",
+                'code': code,
+            }
+
+        results = exec_locals.get('results', exec_globals.get('results', {}))
+        if not isinstance(results, dict):
+            results = {'summary': str(results)}
+
+        # Build output summary
+        summary_parts = []
+        if results.get('summary'):
+            summary_parts.append(str(results['summary']))
+        else:
+            # Build summary from metrics
+            for key in ['accuracy', 'mse', 'mae', 'test_loss', 'precision', 'recall', 'f1_score']:
+                if key in results:
+                    val = results[key]
+                    if isinstance(val, float):
+                        if key == 'accuracy':
+                            summary_parts.append(f"**Accuracy**: {val*100:.2f}%")
+                        else:
+                            summary_parts.append(f"**{key.replace('_', ' ').title()}**: {val:.4f}")
+            if results.get('train_losses'):
+                losses = results['train_losses']
+                summary_parts.append(f"\nTraining loss: {losses[0]:.4f} → {losses[-1]:.4f} over {len(losses)} epochs")
+
+        output = '\n'.join(summary_parts) if summary_parts else 'Training completed.'
+
+        # Build metrics dict
+        metrics = _extract_metrics_from_text(output)
+        # Also add any numeric values from results directly
+        for key in ['accuracy', 'mse', 'mae', 'test_loss', 'precision', 'recall', 'f1_score', 'r2_score', 'auc']:
+            if key in results and isinstance(results[key], (int, float)):
+                metrics[key] = round(float(results[key]), 4)
 
         # Determine actual framework used
         actual_framework = framework if framework != 'auto' else 'pytorch'
 
-        # Save ML model record with extracted metrics
-        extracted_metrics = _extract_metrics_from_text(output)
         ml_model = MLModel.objects.create(
             name=session.name,
             model_type=model_type if model_type != 'auto' else 'mlp',
@@ -496,7 +542,7 @@ You can import and use: torch, tensorflow, keras, sklearn, numpy, pandas.""",
             analysis=session,
             target_column=target_column,
             feature_columns=list(df.columns),
-            metrics=extracted_metrics,
+            metrics=metrics,
             epochs=epochs,
             batch_size=batch_size,
             learning_rate=learning_rate,
@@ -510,6 +556,7 @@ You can import and use: torch, tensorflow, keras, sklearn, numpy, pandas.""",
             'gpu_used': gpu_available,
             'gpu_info': gpu_info,
         }
+        session.code_generated = code
         session.status = 'completed'
         session.execution_time = time.time() - start_time
         session.save()
