@@ -408,17 +408,22 @@ from torch.utils.data import DataLoader, TensorDataset
 # Define model class, move to device, create DataLoader, training loop, evaluate.
 """
 
+        # Compute numeric feature count for shape guidance
+        num_cols = len(df.select_dtypes(include=['number']).columns)
+        cat_cols = len(df.select_dtypes(include=['object', 'category']).columns)
+        approx_features = num_cols + cat_cols - (1 if target_column else 0)  # minus target
+
         model_guidance = {
-            'cnn': 'Build a 1D CNN (Conv1d) for tabular data. Use Conv1d layers followed by MaxPool1d, flatten, and Linear layers.',
-            'rnn': 'Build an RNN model. Reshape input to (batch, 1, features). Use nn.RNN layers.',
-            'lstm': 'Build an LSTM model. Reshape input to (batch, 1, features). Use nn.LSTM layers with dropout.',
-            'gru': 'Build a GRU model. Reshape input to (batch, 1, features). Use nn.GRU layers with dropout.',
-            'transformer': 'Build a simple Transformer encoder. Use nn.TransformerEncoderLayer and nn.TransformerEncoder.',
-            'autoencoder': 'Build an Autoencoder with encoder and decoder. Train to reconstruct input.',
-            'gan': 'Build a simple GAN with generator and discriminator.',
-            'mlp': 'Build a Multi-Layer Perceptron with multiple hidden layers, ReLU, and dropout.',
-            'resnet': 'Build a ResNet-style model with residual/skip connections.',
-        }.get(model_type, 'Choose the best deep learning architecture for this data.')
+            'cnn': f'Build a 1D CNN for tabular data. The input shape is (batch, 1, num_features). Use nn.Conv1d(in_channels=1, out_channels=32, kernel_size=1) since each sample has 1 channel and ~{approx_features} features. Follow with ReLU, flatten, and Linear layers.',
+            'rnn': f'Build an RNN model. Reshape input to (batch, 1, num_features) — 1 time step, ~{approx_features} features. Use nn.RNN(input_size=num_features, hidden_size=64, batch_first=True).',
+            'lstm': f'Build an LSTM model. Reshape input to (batch, 1, num_features) — 1 time step, ~{approx_features} features. Use nn.LSTM(input_size=num_features, hidden_size=64, batch_first=True). Do NOT set dropout in nn.LSTM when num_layers=1.',
+            'gru': f'Build a GRU model. Reshape input to (batch, 1, num_features) — 1 time step, ~{approx_features} features. Use nn.GRU(input_size=num_features, hidden_size=64, batch_first=True). Do NOT set dropout in nn.GRU when num_layers=1.',
+            'transformer': f'Build a Transformer encoder. Input shape (batch, 1, num_features) with ~{approx_features} features. Use nn.TransformerEncoderLayer(d_model=num_features, nhead=1).',
+            'autoencoder': f'Build an Autoencoder. Input is a flat vector of ~{approx_features} features. Encoder reduces dimensions, decoder reconstructs.',
+            'gan': f'Build a simple GAN. Feature vector has ~{approx_features} dimensions.',
+            'mlp': f'Build a Multi-Layer Perceptron. Input is ~{approx_features} features. Use Linear layers with ReLU and Dropout.',
+            'resnet': f'Build a ResNet-style model with skip connections. Input is ~{approx_features} features.',
+        }.get(model_type, f'Choose the best deep learning architecture. Data has ~{approx_features} features.')
 
         head_str = df.head(3).to_string()
         dtypes_str = str(dict(df.dtypes.astype(str)))
@@ -442,11 +447,17 @@ Learning rate: {learning_rate}
 Architecture: {model_guidance}
 {framework_instructions}
 
+The dataset has approximately {approx_features} usable features after preprocessing.
+For Conv1d: use in_channels=1, reshape X to (batch, 1, num_features).
+For LSTM/GRU/RNN: use input_size=num_features, reshape X to (batch, 1, num_features).
+For MLP: input is flat (batch, num_features).
+ALWAYS compute num_features = X_train.shape[1] AFTER preprocessing and use that value.
+
 Requirements:
-1. Clean data (handle missing values, encode categoricals, drop non-numeric/ID columns)
-2. Normalize/standardize features
+1. Clean data (handle missing values, encode categoricals with LabelEncoder, drop ID/name/ticket columns)
+2. Normalize/standardize features with StandardScaler
 3. Split into train/test (80/20)
-4. Define and build the {model_type} model
+4. Define and build the {model_type} model — use the ACTUAL num_features from X_train.shape[1]
 5. Train for {epochs} epochs
 6. Evaluate on test set
 7. Store results in a variable called `results` — a dict with keys:
