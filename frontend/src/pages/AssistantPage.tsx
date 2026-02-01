@@ -4,6 +4,7 @@ import {
   Database, FileText, Settings2
 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
+import Plot from 'react-plotly.js';
 import { agentApi, datasetApi, documentApi } from '../services/api';
 import { Conversation, Message, Dataset, Document } from '../types';
 import toast from 'react-hot-toast';
@@ -278,6 +279,41 @@ export default function AssistantPage() {
                     <div className="text-sm prose prose-sm max-w-none">
                       <ReactMarkdown>{msg.content}</ReactMarkdown>
                     </div>
+                    {msg.role === 'assistant' && msg.visualizations && msg.visualizations.length > 0 && (
+                      <div className="mt-3 space-y-3">
+                        {msg.visualizations.map((viz: any, idx: number) => (
+                          viz?.plotly_json?.data && (
+                            <Plot
+                              key={idx}
+                              data={viz.plotly_json.data}
+                              layout={{
+                                ...(viz.plotly_json.layout || {}),
+                                autosize: true,
+                                margin: { t: 50, b: 50, l: 50, r: 30 },
+                              }}
+                              config={{ responsive: true, displayModeBar: true }}
+                              style={{ width: '100%', height: '380px' }}
+                              useResizeHandler
+                            />
+                          )
+                        ))}
+                      </div>
+                    )}
+                    {msg.role === 'assistant' && msg.metadata?.plotly_json?.data && (
+                      <div className="mt-3">
+                        <Plot
+                          data={msg.metadata.plotly_json.data}
+                          layout={{
+                            ...(msg.metadata.plotly_json.layout || {}),
+                            autosize: true,
+                            margin: { t: 50, b: 50, l: 50, r: 30 },
+                          }}
+                          config={{ responsive: true, displayModeBar: true }}
+                          style={{ width: '100%', height: '380px' }}
+                          useResizeHandler
+                        />
+                      </div>
+                    )}
                   </div>
                 </div>
               ))}

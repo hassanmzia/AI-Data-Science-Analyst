@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { BarChart3, Play, Loader2 } from 'lucide-react';
+import Plot from 'react-plotly.js';
 import { analysisApi, datasetApi } from '../services/api';
 import { Dataset, Visualization } from '../types';
 import toast from 'react-hot-toast';
@@ -88,23 +89,20 @@ export default function VisualizationPage() {
 
   function renderPlotly(plotlyJson: any) {
     if (!plotlyJson || !plotlyJson.data) return null;
-    // Dynamic import for Plotly would go here in production
-    // For now, render the config info
+    const layout = {
+      ...(plotlyJson.layout || {}),
+      autosize: true,
+      margin: { t: 50, b: 50, l: 50, r: 30 },
+    };
     return (
       <div className="bg-gray-50 rounded-lg p-4">
-        <p className="text-sm text-gray-600 mb-2">Chart rendered with Plotly.js</p>
-        <div id="plotly-chart" className="w-full h-96 bg-white rounded border">
-          <div className="flex items-center justify-center h-full text-gray-400">
-            <div className="text-center">
-              <BarChart3 size={48} className="mx-auto mb-2" />
-              <p className="text-sm">Chart type: {plotlyJson.data?.[0]?.type || 'unknown'}</p>
-              <p className="text-xs mt-1">{plotlyJson.layout?.title?.text || 'Untitled'}</p>
-              <p className="text-xs mt-2 text-gray-500">
-                Data points: {plotlyJson.data?.[0]?.x?.length || plotlyJson.data?.[0]?.z?.length || 'N/A'}
-              </p>
-            </div>
-          </div>
-        </div>
+        <Plot
+          data={plotlyJson.data}
+          layout={layout}
+          config={{ responsive: true, displayModeBar: true }}
+          style={{ width: '100%', height: '400px' }}
+          useResizeHandler
+        />
       </div>
     );
   }
