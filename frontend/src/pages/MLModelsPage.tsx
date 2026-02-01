@@ -56,6 +56,7 @@ export default function MLModelsPage() {
   const [targetColumn, setTargetColumn] = useState('');
   const [query, setQuery] = useState('');
   const [running, setRunning] = useState(false);
+  const [trainingStatus, setTrainingStatus] = useState<string>('');
   const [selectedModel, setSelectedModel] = useState<MLModel | null>(null);
   const [columns, setColumns] = useState<string[]>([]);
   const [activeTab, setActiveTab] = useState<Tab>('ml');
@@ -131,19 +132,31 @@ export default function MLModelsPage() {
       }
 
       if (res?.data?.id) {
+        setTrainingStatus('Training in progress...');
         const poll = setInterval(async () => {
           try {
             const statusRes = await analysisApi.sessions.status(res.data.id);
+            if (statusRes.data.status === 'running') {
+              setTrainingStatus('Training in progress...');
+            }
             if (statusRes.data.status === 'completed' || statusRes.data.status === 'failed') {
               clearInterval(poll);
-              loadModels();
+              setTrainingStatus('');
               if (statusRes.data.status === 'completed') {
                 toast.success('Model trained successfully');
+                const modelsRes = await analysisApi.models.list();
+                const allModels = modelsRes.data.results || modelsRes.data || [];
+                setModels(allModels);
+                // Auto-select the newest model
+                if (allModels.length > 0) {
+                  setSelectedModel(allModels[0]);
+                }
               } else {
-                toast.error('Training failed');
+                toast.error(`Training failed: ${statusRes.data.error_message || 'Unknown error'}`);
+                loadModels();
               }
             }
-          } catch { clearInterval(poll); }
+          } catch { clearInterval(poll); setTrainingStatus(''); }
         }, 5000);
       }
     } catch (e: any) {
@@ -262,6 +275,14 @@ export default function MLModelsPage() {
           className="w-full px-4 py-3 border rounded-lg text-sm resize-none"
         />
       </div>
+
+      {/* Training status */}
+      {trainingStatus && (
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6 flex items-center">
+          <Loader2 size={18} className="animate-spin text-blue-600 mr-3" />
+          <span className="text-sm text-blue-700 font-medium">{trainingStatus}</span>
+        </div>
+      )}
 
       {/* Models list */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

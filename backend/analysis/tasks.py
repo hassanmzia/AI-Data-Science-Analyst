@@ -448,7 +448,10 @@ After training, evaluate on the test set and print metrics."""
         8. Print training history (loss per epoch) and final test metrics
         9. Return a detailed summary including model architecture, training loss curve info, and test metrics.
 
-        IMPORTANT: Do all steps in as few code executions as possible.
+        IMPORTANT: You MUST write ALL code in a SINGLE code block. Do NOT split into multiple executions.
+        Class definitions, imports, training loop, and evaluation MUST all be in ONE block.
+        If you split the code, class and variable definitions will be lost between executions.
+        Do NOT use matplotlib.pyplot.show() — just print the loss values instead.
         Print the final results clearly."""
 
         agent = create_pandas_dataframe_agent(
@@ -465,9 +468,10 @@ Dataset has {len(df)} rows and {len(df.columns)} columns: {list(df.columns)}
 Dtypes: {dict(df.dtypes.astype(str))}
 Always use the `df` variable directly.
 
-You can import and use: torch, tensorflow, keras, sklearn, numpy, pandas.
-Do all work in a single code block when possible.
-For deep learning training, write the complete code in one execution.""",
+CRITICAL: You MUST write ALL code (imports, class definitions, training, evaluation) in a SINGLE python_repl_ast call.
+If you split code across multiple calls, class definitions and variables WILL BE LOST.
+NEVER call plt.show(). Just print metrics.
+You can import and use: torch, tensorflow, keras, sklearn, numpy, pandas.""",
         )
 
         try:
