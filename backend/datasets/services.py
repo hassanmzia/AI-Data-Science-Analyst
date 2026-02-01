@@ -125,6 +125,13 @@ class DatasetService:
         """Import dataset from Kaggle."""
         from .models import Dataset
 
+        if not settings.KAGGLE_USERNAME or not settings.KAGGLE_KEY:
+            raise ValueError(
+                "Kaggle credentials are not configured. "
+                "Please set KAGGLE_USERNAME and KAGGLE_KEY environment variables. "
+                "You can get your API credentials from https://www.kaggle.com/settings -> API -> Create New Token."
+            )
+
         os.environ['KAGGLE_USERNAME'] = settings.KAGGLE_USERNAME
         os.environ['KAGGLE_KEY'] = settings.KAGGLE_KEY
 
