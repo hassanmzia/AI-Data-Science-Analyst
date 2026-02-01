@@ -92,19 +92,28 @@ class AgentOrchestrator:
         dataset = Dataset.objects.get(id=did)
         df = DatasetService._read_dataframe(dataset)
 
+        head_str = df.head(3).to_string()
+
         agent = create_pandas_dataframe_agent(
             self.llm, df,
             verbose=True,
             allow_dangerous_code=True,
             agent_type='openai-tools',
             prefix=f"""You are an expert data analyst assistant.
-You are analyzing a dataset called "{dataset.name}" with {len(df)} rows and {len(df.columns)} columns.
+You have access to a pandas DataFrame called `df` that is ALREADY LOADED in memory.
+NEVER try to read files from disk. NEVER use pd.read_csv(). The data is already in `df`.
+
+Dataset: "{dataset.name}" ({len(df)} rows x {len(df.columns)} cols)
 Columns: {list(df.columns)}
+Dtypes: {dict(df.dtypes.astype(str))}
+First 3 rows:
+{head_str}
 
 Previous conversation:
 {self._format_history(history)}
 
-Provide thorough, insightful analysis. Include statistics, patterns, and actionable insights.""",
+Provide thorough, insightful analysis. Include statistics, patterns, and actionable insights.
+Always use the `df` variable directly. Do NOT load data from files.""",
         )
 
         response = agent.invoke(message)
@@ -143,17 +152,26 @@ Provide thorough, insightful analysis. Include statistics, patterns, and actiona
         dataset = Dataset.objects.get(id=did)
         df = DatasetService._read_dataframe(dataset)
 
+        head_str = df.head(3).to_string()
+
         agent = create_pandas_dataframe_agent(
             self.llm, df,
             verbose=True,
             allow_dangerous_code=True,
             agent_type='openai-tools',
             prefix=f"""You are an expert data scientist assistant.
+You have access to a pandas DataFrame called `df` that is ALREADY LOADED in memory.
+NEVER try to read files from disk. NEVER use pd.read_csv(). The data is already in `df`.
+
 Dataset: "{dataset.name}" ({len(df)} rows x {len(df.columns)} cols)
 Columns: {list(df.columns)}
+Dtypes: {dict(df.dtypes.astype(str))}
+First 3 rows:
+{head_str}
 
 You can perform: EDA, feature engineering, hypothesis testing, ML modeling,
 statistical analysis, and provide data-driven insights.
+Always use the `df` variable directly. Do NOT load data from files.
 
 Previous conversation:
 {self._format_history(history)}""",

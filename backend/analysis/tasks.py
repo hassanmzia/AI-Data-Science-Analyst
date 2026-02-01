@@ -46,6 +46,10 @@ def run_eda_analysis(self, session_id):
             verbose=True,
             allow_dangerous_code=True,
             agent_type='openai-tools',
+            prefix=f"""You have access to a pandas DataFrame called `df` that is ALREADY LOADED in memory.
+NEVER try to read files from disk. NEVER use pd.read_csv(). The data is already in `df`.
+Dataset has {len(df)} rows and {len(df.columns)} columns: {list(df.columns)}
+Always use the `df` variable directly.""",
         )
 
         response = agent.invoke(session.query)
@@ -230,6 +234,10 @@ def run_ml_model_training(self, session_id):
             verbose=True,
             allow_dangerous_code=True,
             agent_type='openai-tools',
+            prefix=f"""You have access to a pandas DataFrame called `df` that is ALREADY LOADED in memory.
+NEVER try to read files from disk. NEVER use pd.read_csv(). The data is already in `df`.
+Dataset has {len(df)} rows and {len(df.columns)} columns: {list(df.columns)}
+Always use the `df` variable directly.""",
         )
 
         response = agent.invoke(ml_prompt)
@@ -288,6 +296,10 @@ def run_hypothesis_test(self, session_id):
             verbose=True,
             allow_dangerous_code=True,
             agent_type='openai-tools',
+            prefix=f"""You have access to a pandas DataFrame called `df` that is ALREADY LOADED in memory.
+NEVER try to read files from disk. NEVER use pd.read_csv(). The data is already in `df`.
+Dataset has {len(df)} rows and {len(df.columns)} columns: {list(df.columns)}
+Always use the `df` variable directly.""",
         )
 
         prompt = f"""Perform this hypothesis test: {session.query}
