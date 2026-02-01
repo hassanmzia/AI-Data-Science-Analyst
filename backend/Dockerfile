@@ -28,7 +28,14 @@ RUN python -m pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir -r requirements.txt
 
 # Install PyTorch with CUDA 12.8 support (sm_120 for RTX 5090 Blackwell)
-RUN pip install --no-cache-dir torch==2.9.1 torchvision==0.24.1 torchaudio==2.9.1 --index-url https://download.pytorch.org/whl/cu128
+RUN pip install --no-cache-dir torch==2.9.1 torchvision==0.24.1 torchaudio==2.9.1 --index-url https://download.pytorch.org/whl/cu128 && \
+    pip install --no-cache-dir nvidia-cusparselt-cu12
+
+# Register all NVIDIA pip package lib directories with the dynamic linker
+RUN find /usr/local/lib/python3.12/site-packages/nvidia -name "*.so*" -exec dirname {} \; 2>/dev/null | sort -u > /etc/ld.so.conf.d/nvidia-python.conf && \
+    find /usr/local/lib64/python3.12/site-packages/nvidia -name "*.so*" -exec dirname {} \; 2>/dev/null >> /etc/ld.so.conf.d/nvidia-python.conf && \
+    sort -u -o /etc/ld.so.conf.d/nvidia-python.conf /etc/ld.so.conf.d/nvidia-python.conf && \
+    ldconfig
 
 COPY . .
 
