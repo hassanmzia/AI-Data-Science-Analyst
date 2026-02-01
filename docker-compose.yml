@@ -106,7 +106,6 @@ services:
       - CHROMA_PORT=8000
       - MCP_SERVER_URL=http://mcp-server:4050
       - OPENAI_API_KEY=${OPENAI_API_KEY}
-      - OPENAI_ORG_ID=${OPENAI_ORG_ID:-}
       - SERPAPI_API_KEY=${SERPAPI_API_KEY:-}
       - KAGGLE_USERNAME=${KAGGLE_USERNAME:-}
       - KAGGLE_KEY=${KAGGLE_KEY:-}
@@ -161,7 +160,6 @@ services:
       - CHROMA_PORT=8000
       - MCP_SERVER_URL=http://mcp-server:4050
       - OPENAI_API_KEY=${OPENAI_API_KEY}
-      - OPENAI_ORG_ID=${OPENAI_ORG_ID:-}
       - SERPAPI_API_KEY=${SERPAPI_API_KEY:-}
       - KAGGLE_USERNAME=${KAGGLE_USERNAME:-}
       - KAGGLE_KEY=${KAGGLE_KEY:-}
