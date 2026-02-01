@@ -1,4 +1,4 @@
-FROM nvidia/cuda:12.4.1-runtime-rockylinux9
+FROM nvidia/cuda:12.4.1-cudnn-runtime-rockylinux9
 
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
