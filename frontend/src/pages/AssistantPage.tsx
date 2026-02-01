@@ -4,7 +4,7 @@ import {
   Database, FileText, Settings2
 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
-import Plot from 'react-plotly.js';
+import Plot from '../components/PlotlyChart';
 import { agentApi, datasetApi, documentApi } from '../services/api';
 import { Conversation, Message, Dataset, Document } from '../types';
 import toast from 'react-hot-toast';

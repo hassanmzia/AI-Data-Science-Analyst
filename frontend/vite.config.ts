@@ -14,5 +14,12 @@ export default defineConfig({
   build: {
     outDir: 'dist',
     sourcemap: false,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          plotly: ['plotly.js-dist-min'],
+        },
+      },
+    },
   },
 });
