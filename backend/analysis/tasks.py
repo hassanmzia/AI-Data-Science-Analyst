@@ -1,3 +1,4 @@
+import re
 import time
 import json
 import logging
@@ -9,6 +10,37 @@ from celery import shared_task
 from django.conf import settings
 
 logger = logging.getLogger(__name__)
+
+
+def _extract_metrics_from_text(text):
+    """Extract numeric metrics from LLM output text into a structured dict."""
+    metrics = {'summary': text}
+    # Common metric patterns: "Accuracy: 0.81", "**Accuracy**: 81.01%", "F1 Score: 0.76"
+    patterns = [
+        (r'[*]*accuracy[*]*[:\s]+([0-9]+\.?[0-9]*)\s*%?', 'accuracy'),
+        (r'[*]*precision[*]*[:\s]+([0-9]+\.?[0-9]*)\s*%?', 'precision'),
+        (r'[*]*recall[*]*[:\s]+([0-9]+\.?[0-9]*)\s*%?', 'recall'),
+        (r'[*]*f1[_ ]?score[*]*[:\s]+([0-9]+\.?[0-9]*)\s*%?', 'f1_score'),
+        (r'[*]*mse[*]*[:\s]+([0-9]+\.?[0-9]*)', 'mse'),
+        (r'[*]*mae[*]*[:\s]+([0-9]+\.?[0-9]*)', 'mae'),
+        (r'[*]*rmse[*]*[:\s]+([0-9]+\.?[0-9]*)', 'rmse'),
+        (r'[*]*r2[_ ]?score[*]*[:\s]+([0-9]+\.?[0-9]*)', 'r2_score'),
+        (r'[*]*r[²2][*]*[:\s]+([0-9]+\.?[0-9]*)', 'r2_score'),
+        (r'[*]*auc[*]*[:\s]+([0-9]+\.?[0-9]*)', 'auc'),
+        (r'[*]*roc[_ ]?auc[*]*[:\s]+([0-9]+\.?[0-9]*)', 'roc_auc'),
+        (r'[*]*loss[*]*[:\s]+([0-9]+\.?[0-9]*)', 'loss'),
+        (r'[*]*test[_ ]?loss[*]*[:\s]+([0-9]+\.?[0-9]*)', 'test_loss'),
+        (r'[*]*train[_ ]?loss[*]*[:\s]+([0-9]+\.?[0-9]*)', 'train_loss'),
+    ]
+    for pattern, key in patterns:
+        match = re.search(pattern, text, re.IGNORECASE)
+        if match:
+            val = float(match.group(1))
+            # Normalize percentages to 0-1 range for accuracy/precision/recall/f1
+            if key in ('accuracy', 'precision', 'recall', 'f1_score', 'auc', 'roc_auc') and val > 1:
+                val = val / 100.0
+            metrics[key] = round(val, 4)
+    return metrics
 
 
 def _get_llm():
@@ -282,7 +314,8 @@ For the train/test split and model training, write the complete code in one exec
             output = f"The ML agent encountered an issue: {str(agent_err)}"
             logger.warning(f"ML agent partial result: {agent_err}")
 
-        # Save ML model record
+        # Save ML model record with extracted metrics
+        extracted_metrics = _extract_metrics_from_text(output)
         ml_model = MLModel.objects.create(
             name=session.name,
             model_type=model_type if model_type != 'auto' else 'custom',
@@ -292,7 +325,7 @@ For the train/test split and model training, write the complete code in one exec
             analysis=session,
             target_column=target_column,
             feature_columns=list(df.columns),
-            metrics={'summary': output},
+            metrics=extracted_metrics,
         )
 
         session.result = {
@@ -426,7 +459,8 @@ For deep learning training, write the complete code in one execution.""",
         # Determine actual framework used
         actual_framework = framework if framework != 'auto' else 'pytorch'
 
-        # Save ML model record
+        # Save ML model record with extracted metrics
+        extracted_metrics = _extract_metrics_from_text(output)
         ml_model = MLModel.objects.create(
             name=session.name,
             model_type=model_type if model_type != 'auto' else 'mlp',
@@ -437,7 +471,7 @@ For deep learning training, write the complete code in one execution.""",
             analysis=session,
             target_column=target_column,
             feature_columns=list(df.columns),
-            metrics={'summary': output},
+            metrics=extracted_metrics,
             epochs=epochs,
             batch_size=batch_size,
             learning_rate=learning_rate,
