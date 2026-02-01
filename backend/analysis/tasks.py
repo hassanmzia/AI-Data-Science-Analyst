@@ -371,20 +371,41 @@ def run_dl_model_training(self, session_id):
         learning_rate = session.parameters.get('learning_rate', 0.001)
         task_type = session.parameters.get('task_type', 'auto')
 
+        # Detect GPU availability
+        gpu_available = False
+        gpu_info = 'CPU only'
+        try:
+            import torch
+            if torch.cuda.is_available():
+                gpu_available = True
+                gpu_info = f'GPU: {torch.cuda.get_device_name(0)} (CUDA {torch.version.cuda})'
+                logger.info(f"DL training will use GPU: {gpu_info}")
+        except Exception:
+            pass
+
         # Build framework-specific instructions
         if framework == 'tensorflow':
-            framework_instructions = """
+            gpu_instruction = """
+IMPORTANT: GPU is available. TensorFlow will automatically use it.
+Print tf.config.list_physical_devices('GPU') to confirm GPU usage.""" if gpu_available else ""
+            framework_instructions = f"""
 Use TensorFlow/Keras for building the deep learning model.
 Import: import tensorflow as tf, from tensorflow import keras, from tensorflow.keras import layers
 Build the model using keras.Sequential or Functional API.
 Compile with appropriate optimizer and loss function.
 Use model.fit() for training with the specified epochs and batch_size.
-After training, evaluate on the test set and print metrics."""
+After training, evaluate on the test set and print metrics.{gpu_instruction}"""
         else:
-            framework_instructions = """
+            gpu_instruction = f"""
+IMPORTANT: GPU is available ({gpu_info}). You MUST use it.
+Set device = torch.device('cuda') and move model and tensors to device with .to(device).
+Print the device being used at the start.""" if gpu_available else """
+Use device = torch.device('cpu')."""
+            framework_instructions = f"""
 Use PyTorch for building the deep learning model.
 Import: import torch, import torch.nn as nn, import torch.optim as optim, from torch.utils.data import DataLoader, TensorDataset
 Define the model as a class inheriting nn.Module.
+{gpu_instruction}
 Create a training loop with the specified epochs and batch_size.
 After training, evaluate on the test set and print metrics."""
 
@@ -482,6 +503,8 @@ For deep learning training, write the complete code in one execution.""",
             'summary': output,
             'model_type': model_type,
             'framework': actual_framework,
+            'gpu_used': gpu_available,
+            'gpu_info': gpu_info,
         }
         session.status = 'completed'
         session.execution_time = time.time() - start_time

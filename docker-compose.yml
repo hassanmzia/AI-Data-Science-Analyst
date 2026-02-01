@@ -92,6 +92,13 @@ services:
       dockerfile: Dockerfile
     container_name: ds-backend
     restart: unless-stopped
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
     environment:
       - DJANGO_SECRET_KEY=${DJANGO_SECRET_KEY:-change-me-to-a-random-secret-key}
       - DJANGO_DEBUG=${DJANGO_DEBUG:-True}
@@ -147,6 +154,13 @@ services:
       dockerfile: Dockerfile
     container_name: ds-celery-worker
     restart: unless-stopped
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
     environment:
       - DJANGO_SECRET_KEY=${DJANGO_SECRET_KEY:-change-me-to-a-random-secret-key}
       - DJANGO_DEBUG=${DJANGO_DEBUG:-True}
